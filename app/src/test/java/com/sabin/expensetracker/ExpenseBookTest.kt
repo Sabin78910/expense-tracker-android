@@ -25,4 +25,18 @@ class ExpenseBookTest {
 
     @Test(expected = IllegalArgumentException::class)
     fun rejectsBlankTitle() { ExpenseBook().add("  ", 10.0, "Other") }
+
+    @Test fun serializeRoundTrips() {
+        val book = ExpenseBook()
+        book.add("Momo\tand\nchutney \\ more", 250.5, "Food")
+        book.add("Bus", 50.0, "Transport")
+        val restored = ExpenseBook.deserialize(book.serialize())
+        assertEquals(book.expenses, restored.expenses)
+        assertEquals(3L, restored.add("Tea", 30.0, "Food").id)
+    }
+
+    @Test fun deserializeEmptyOrCorruptGivesEmptyBook() {
+        assertEquals(0, ExpenseBook.deserialize("").expenses.size)
+        assertEquals(0, ExpenseBook.deserialize("garbage").expenses.size)
+    }
 }
