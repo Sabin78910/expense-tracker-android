@@ -33,10 +33,17 @@ fun ExpenseScreen() {
     var category by remember { mutableStateOf(CATEGORIES.first()) }
     var error by remember { mutableStateOf<String?>(null) }
     val expenses = remember(version) { book.expenses }
+    val totals = remember(version) { book.sortedTotalsByCategory() }
 
     Scaffold(topBar = { TopAppBar(title = { Text("Expense Tracker") }) }) { padding ->
         Column(Modifier.padding(padding).padding(16.dp).fillMaxSize()) {
             Text("Total: NPR %.2f".format(book.total()), style = MaterialTheme.typography.headlineSmall)
+            totals.forEach { (c, t) ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(c)
+                    Text("NPR %.2f".format(t))
+                }
+            }
             Spacer(Modifier.height(12.dp))
             OutlinedTextField(title, { title = it }, label = { Text("Title") }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(

@@ -23,4 +23,8 @@ class ExpenseBook(initial: List<Expense> = emptyList()) {
 
     fun totalsByCategory(): Map<String, Double> =
         items.groupBy { it.category }.mapValues { (_, list) -> list.sumOf { it.amount } }
+
+    /** Category totals, highest first. */
+    fun sortedTotalsByCategory(): List<Pair<String, Double>> =
+        totalsByCategory().toList().sortedByDescending { it.second }
 }
