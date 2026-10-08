@@ -23,4 +23,39 @@ class ExpenseBook(initial: List<Expense> = emptyList()) {
 
     fun totalsByCategory(): Map<String, Double> =
         items.groupBy { it.category }.mapValues { (_, list) -> list.sumOf { it.amount } }
+
+    /** One expense per line, tab-separated: id, title, amount, category (fields escaped). */
+    fun serialize(): String = items.joinToString("\n") {
+        listOf(it.id.toString(), escape(it.title), it.amount.toString(), escape(it.category))
+            .joinToString("\t")
+    }
+
+    companion object {
+        fun deserialize(data: String): ExpenseBook = ExpenseBook(
+            data.lines().filter { it.isNotBlank() }.mapNotNull { line ->
+                val f = line.split("\t")
+                if (f.size != 4) return@mapNotNull null
+                val id = f[0].toLongOrNull() ?: return@mapNotNull null
+                val amount = f[2].toDoubleOrNull() ?: return@mapNotNull null
+                Expense(id, unescape(f[1]), amount, unescape(f[3]))
+            }
+        )
+
+        private fun escape(s: String) =
+            s.replace("\\", "\\\\").replace("\t", "\\t").replace("\n", "\\n").replace("\r", "\\r")
+
+        private fun unescape(s: String): String {
+            val sb = StringBuilder()
+            var i = 0
+            while (i < s.length) {
+                val c = s[i]
+                if (c == '\\' && i + 1 < s.length) {
+                    i++
+                    sb.append(when (s[i]) { 't' -> '\t'; 'n' -> '\n'; 'r' -> '\r'; else -> s[i] })
+                } else sb.append(c)
+                i++
+            }
+            return sb.toString()
+        }
+    }
 }
