@@ -1,0 +1,75 @@
+package com.sabin.expensetracker
+
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
+
+val CATEGORIES = listOf("Food", "Transport", "Bills", "Shopping", "Other")
+
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContent { MaterialTheme { ExpenseScreen() } }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ExpenseScreen() {
+    val book = remember { ExpenseBook() }
+    var version by remember { mutableIntStateOf(0) }
+    var title by remember { mutableStateOf("") }
+    var amount by remember { mutableStateOf("") }
+    var category by remember { mutableStateOf(CATEGORIES.first()) }
+    var error by remember { mutableStateOf<String?>(null) }
+    val expenses = remember(version) { book.expenses }
+
+    Scaffold(topBar = { TopAppBar(title = { Text("Expense Tracker") }) }) { padding ->
+        Column(Modifier.padding(padding).padding(16.dp).fillMaxSize()) {
+            Text("Total: NPR %.2f".format(book.total()), style = MaterialTheme.typography.headlineSmall)
+            Spacer(Modifier.height(12.dp))
+            OutlinedTextField(title, { title = it }, label = { Text("Title") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(
+                amount, { amount = it }, label = { Text("Amount") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier = Modifier.fillMaxWidth()
+            )
+            Row(Modifier.padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                CATEGORIES.forEach { c ->
+                    FilterChip(selected = c == category, onClick = { category = c }, label = { Text(c) })
+                }
+            }
+            error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            Button(onClick = {
+                runCatching { book.add(title, amount.toDoubleOrNull() ?: 0.0, category) }
+                    .onSuccess { title = ""; amount = ""; error = null; version++ }
+                    .onFailure { error = it.message }
+            }, modifier = Modifier.fillMaxWidth()) { Text("Add expense") }
+            Spacer(Modifier.height(12.dp))
+            LazyColumn {
+                items(expenses, key = { it.id }) { e ->
+                    ListItem(
+                        headlineContent = { Text(e.title) },
+                        supportingContent = { Text(e.category) },
+                        trailingContent = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("%.2f".format(e.amount))
+                                TextButton(onClick = { book.remove(e.id); version++ }) { Text("Delete") }
+                            }
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
