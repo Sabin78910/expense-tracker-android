@@ -39,4 +39,20 @@ class ExpenseBookTest {
         assertEquals(0, ExpenseBook.deserialize("").expenses.size)
         assertEquals(0, ExpenseBook.deserialize("garbage").expenses.size)
     }
+
+    @Test fun filterByCategoryReturnsOnlyThatCategory() {
+        val book = ExpenseBook()
+        book.add("Momo", 250.0, "Food")
+        book.add("Bus", 50.0, "Transport")
+        book.add("Tea", 30.0, "Food")
+        assertEquals(listOf("Tea", "Momo"), book.filterByCategory("Food").map { it.title })
+        assertEquals(0, book.filterByCategory("Bills").size)
+    }
+
+    @Test fun filterByNullCategoryReturnsAll() {
+        val book = ExpenseBook()
+        book.add("Momo", 250.0, "Food")
+        book.add("Bus", 50.0, "Transport")
+        assertEquals(2, book.filterByCategory(null).size)
+    }
 }

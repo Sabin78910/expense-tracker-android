@@ -37,7 +37,8 @@ fun ExpenseScreen() {
     var amount by remember { mutableStateOf("") }
     var category by remember { mutableStateOf(CATEGORIES.first()) }
     var error by remember { mutableStateOf<String?>(null) }
-    val expenses = remember(version) { book.expenses }
+    var filter by remember { mutableStateOf<String?>(null) }
+    val expenses = remember(version, filter) { book.filterByCategory(filter) }
 
     Scaffold(topBar = { TopAppBar(title = { Text("Expense Tracker") }) }) { padding ->
         Column(Modifier.padding(padding).padding(16.dp).fillMaxSize()) {
@@ -61,6 +62,12 @@ fun ExpenseScreen() {
                     .onFailure { error = it.message }
             }, modifier = Modifier.fillMaxWidth()) { Text("Add expense") }
             Spacer(Modifier.height(12.dp))
+            Row(Modifier.padding(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                FilterChip(selected = filter == null, onClick = { filter = null }, label = { Text("All") })
+                CATEGORIES.forEach { c ->
+                    FilterChip(selected = c == filter, onClick = { filter = c }, label = { Text(c) })
+                }
+            }
             LazyColumn {
                 items(expenses, key = { it.id }) { e ->
                     ListItem(
