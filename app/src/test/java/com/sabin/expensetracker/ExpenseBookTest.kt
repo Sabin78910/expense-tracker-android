@@ -67,4 +67,30 @@ class ExpenseBookTest {
         book.add("Bus", 50.0, "Transport")
         assertEquals(2, book.filterByCategory(null).size)
     }
+
+    private fun millis(y: Int, m: Int, d: Int) =
+        java.time.LocalDate.of(y, m, d).atStartOfDay(java.time.ZoneOffset.UTC).toInstant().toEpochMilli()
+
+    @Test fun totalForMonthSumsOnlyThatMonth() {
+        val book = ExpenseBook()
+        book.add("A", 100.0, "Food", millis(2026, 10, 1))
+        book.add("B", 50.0, "Food", millis(2026, 10, 31))
+        book.add("C", 70.0, "Food", millis(2026, 9, 30))
+        book.add("D", 20.0, "Food", millis(2025, 10, 5))
+        assertEquals(150.0, book.totalForMonth(2026, 10, java.time.ZoneOffset.UTC), 0.001)
+        assertEquals(0.0, book.totalForMonth(2026, 1, java.time.ZoneOffset.UTC), 0.001)
+    }
+
+    @Test fun timestampSurvivesSerialization() {
+        val book = ExpenseBook()
+        book.add("A", 100.0, "Food", millis(2026, 10, 1))
+        assertEquals(book.expenses, ExpenseBook.deserialize(book.serialize()).expenses)
+    }
+
+    @Test fun deserializesLegacyFourFieldLines() {
+        val book = ExpenseBook.deserialize("1\tMomo\t250.0\tFood")
+        assertEquals(1, book.expenses.size)
+        assertEquals(0L, book.expenses[0].timestamp)
+        assertEquals(0.0, book.totalForMonth(2026, 10, java.time.ZoneOffset.UTC), 0.001)
+    }
 }

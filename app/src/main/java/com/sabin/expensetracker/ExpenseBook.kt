@@ -1,6 +1,16 @@
 package com.sabin.expensetracker
 
-data class Expense(val id: Long, val title: String, val amount: Double, val category: String)
+import java.time.Instant
+import java.time.ZoneId
+
+data class Expense(
+    val id: Long,
+    val title: String,
+    val amount: Double,
+    val category: String,
+    /** Epoch millis; 0 for expenses saved before timestamps existed. */
+    val timestamp: Long = 0L
+)
 
 /** Pure, testable expense logic (no Android dependencies). */
 class ExpenseBook(initial: List<Expense> = emptyList()) {
@@ -9,10 +19,15 @@ class ExpenseBook(initial: List<Expense> = emptyList()) {
 
     val expenses: List<Expense> get() = items.toList()
 
-    fun add(title: String, amount: Double, category: String): Expense {
+    fun add(
+        title: String,
+        amount: Double,
+        category: String,
+        timestamp: Long = System.currentTimeMillis()
+    ): Expense {
         require(title.isNotBlank()) { "Title is required" }
         require(amount > 0) { "Amount must be positive" }
-        return Expense(nextId++, title.trim(), amount, category).also { items.add(0, it) }
+        return Expense(nextId++, title.trim(), amount, category, timestamp).also { items.add(0, it) }
     }
 
     fun remove(id: Long) {
@@ -25,6 +40,13 @@ class ExpenseBook(initial: List<Expense> = emptyList()) {
 
     fun total(): Double = items.sumOf { it.amount }
 
+    /** Sum of expenses dated in [year]/[month] (1-12) in [zone]. */
+    fun totalForMonth(year: Int, month: Int, zone: ZoneId = ZoneId.systemDefault()): Double =
+        items.filter {
+            val d = Instant.ofEpochMilli(it.timestamp).atZone(zone)
+            d.year == year && d.monthValue == month
+        }.sumOf { it.amount }
+
     fun totalsByCategory(): Map<String, Double> =
         items.groupBy { it.category }.mapValues { (_, list) -> list.sumOf { it.amount } }
 
@@ -32,9 +54,9 @@ class ExpenseBook(initial: List<Expense> = emptyList()) {
     fun sortedCategoryTotals(): List<Pair<String, Double>> =
         totalsByCategory().toList().sortedByDescending { it.second }
 
-    /** One expense per line, tab-separated: id, title, amount, category (fields escaped). */
+    /** One expense per line, tab-separated: id, title, amount, category, timestamp (fields escaped). */
     fun serialize(): String = items.joinToString("\n") {
-        listOf(it.id.toString(), escape(it.title), it.amount.toString(), escape(it.category))
+        listOf(it.id.toString(), escape(it.title), it.amount.toString(), escape(it.category), it.timestamp.toString())
             .joinToString("\t")
     }
 
@@ -42,10 +64,11 @@ class ExpenseBook(initial: List<Expense> = emptyList()) {
         fun deserialize(data: String): ExpenseBook = ExpenseBook(
             data.lines().filter { it.isNotBlank() }.mapNotNull { line ->
                 val f = line.split("\t")
-                if (f.size != 4) return@mapNotNull null
+                if (f.size != 4 && f.size != 5) return@mapNotNull null
                 val id = f[0].toLongOrNull() ?: return@mapNotNull null
                 val amount = f[2].toDoubleOrNull() ?: return@mapNotNull null
-                Expense(id, unescape(f[1]), amount, unescape(f[3]))
+                val ts = if (f.size == 5) f[4].toLongOrNull() ?: return@mapNotNull null else 0L
+                Expense(id, unescape(f[1]), amount, unescape(f[3]), ts)
             }
         )
 

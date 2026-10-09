@@ -43,6 +43,8 @@ fun ExpenseScreen() {
     Scaffold(topBar = { TopAppBar(title = { Text("Expense Tracker") }) }) { padding ->
         Column(Modifier.padding(padding).padding(16.dp).fillMaxSize()) {
             Text("Total: NPR %.2f".format(book.total()), style = MaterialTheme.typography.headlineSmall)
+            val now = remember(version) { java.time.LocalDate.now() }
+            Text("This month: NPR %.2f".format(book.totalForMonth(now.year, now.monthValue)))
             book.sortedCategoryTotals().forEach { (c, t) ->
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(c)
