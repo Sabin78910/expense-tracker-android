@@ -35,6 +35,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import java.time.Instant
+import kotlinx.coroutines.launch
 import java.time.ZoneId
 
 val CATEGORIES = listOf("Food", "Transport", "Bills", "Shopping", "Other")
@@ -51,6 +52,7 @@ class MainActivity : ComponentActivity() {
             override fun get() = prefs.getBoolean("onboarding_done", false)
             override fun set(value: Boolean) = prefs.edit().putBoolean("onboarding_done", value).apply()
         })
+        val fromWidgetAdd = intent.getBooleanExtra(EXTRA_OPEN_FORM, false)
         setContent {
             ExpenseTheme {
                 var onboarding by remember { mutableStateOf(firstRun.shouldShow()) }
@@ -58,7 +60,7 @@ class MainActivity : ComponentActivity() {
                 if (onboarding) {
                     OnboardingScreen(firstRun) { open -> openForm = open; onboarding = false }
                 } else {
-                    ExpenseScreen(startWithForm = openForm)
+                    ExpenseScreen(startWithForm = openForm || fromWidgetAdd)
                 }
             }
         }
@@ -90,7 +92,11 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
             }
         }
     }
-    fun save() = prefs.edit().putString("data", book.serialize()).putString("recurring", recurring.serialize()).apply()
+    val scope = rememberCoroutineScope()
+    fun save() {
+        prefs.edit().putString("data", book.serialize()).putString("recurring", recurring.serialize()).apply()
+        scope.launch { ExpenseWidget.refresh(context) }
+    }
     var budget by remember { mutableDoubleStateOf(Double.fromBits(prefs.getLong("budget", 0L))) }
     var budgetText by remember { mutableStateOf(if (budget > 0) budget.toString() else "") }
     var version by remember { mutableIntStateOf(0) }
@@ -217,6 +223,7 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
                         budgetText = filterDecimalInput(budgetText, it)
                         budget = budgetText.toDoubleOrNull()?.takeIf { v -> v > 0 } ?: 0.0
                         prefs.edit().putLong("budget", budget.toRawBits()).apply()
+                        scope.launch { ExpenseWidget.refresh(context) }
                     },
                     label = { Text("Monthly budget (NPR)") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
