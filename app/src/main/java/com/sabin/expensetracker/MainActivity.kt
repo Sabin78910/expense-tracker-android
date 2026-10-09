@@ -14,6 +14,8 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
@@ -83,7 +85,7 @@ fun ExpenseScreen() {
     var monthly by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var filter by remember { mutableStateOf<String?>(null) }
-    var focusTitle by remember { mutableStateOf(false) }
+    var showForm by remember { mutableStateOf(false) }
     var backupMessage by remember { mutableStateOf<String?>(null) }
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json")
@@ -128,61 +130,17 @@ fun ExpenseScreen() {
                 recurring.applyDue(ExpenseBook(), java.time.LocalDate.now())
             }
         }
-            .onSuccess { title = ""; amount = ""; monthly = false; error = null; save(); version++ }
+            .onSuccess { title = ""; amount = ""; monthly = false; error = null; showForm = false; save(); version++ }
             .onFailure { error = it.message }
     }
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-
-    Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        topBar = { LargeTopAppBar(title = { Text("Expense Tracker") }, scrollBehavior = scrollBehavior) },
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = { addExpense() },
-                icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                text = { Text("Add expense") }
-            )
-        }
-    ) { padding ->
-        LazyColumn(
-            Modifier.padding(padding).fillMaxSize(),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 96.dp)
-        ) {
-            item {
-                val now = remember(version) { java.time.LocalDate.now() }
-                val monthSpent = book.totalForMonth(now.year, now.monthValue)
-                val streak = loggingStreak(book.expenses, now)
-                val status = budgetStatus(monthSpent, budget, now.dayOfMonth, now.lengthOfMonth())
-                HeroCard(monthSpent, status, streak, Modifier.padding(bottom = 12.dp))
-                Text("All time: " + formatNpr(book.total()), style = MaterialTheme.typography.labelLarge)
-                status.message?.let { Text(it) }
-                OutlinedTextField(
-                    budgetText,
-                    {
-                        budgetText = it
-                        budget = it.toDoubleOrNull()?.takeIf { v -> v > 0 } ?: 0.0
-                        prefs.edit().putLong("budget", budget.toRawBits()).apply()
-                    },
-                    label = { Text("Monthly budget (NPR)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                CategoryDonut(categoryShares(monthCategoryTotals(book.expenses, now.year, now.monthValue)))
-                Spacer(Modifier.height(12.dp))
-                WeekBars(dailyTotals(book.expenses, now))
-                Spacer(Modifier.height(12.dp))
-                book.sortedCategoryTotals().forEach { (c, t) ->
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(c)
-                        Text(formatNpr(t))
-                    }
-                }
-                Spacer(Modifier.height(12.dp))
+    if (showForm) {
+        ModalBottomSheet(onDismissRequest = { showForm = false }) {
+            Column(Modifier.padding(horizontal = 16.dp).verticalScroll(rememberScrollState())) {
                 val titleFocus = remember { FocusRequester() }
-                LaunchedEffect(focusTitle) { if (focusTitle) { titleFocus.requestFocus(); focusTitle = false } }
+                LaunchedEffect(Unit) { titleFocus.requestFocus() }
                 OutlinedTextField(title, { title = it }, label = { Text("Title") }, modifier = Modifier.fillMaxWidth().focusRequester(titleFocus))
                 OutlinedTextField(
-                    amount, { amount = it }, label = { Text("Amount") },
+                    amount, { amount = filterDecimalInput(amount, it) }, label = { Text("Amount") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -198,6 +156,64 @@ fun ExpenseScreen() {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(monthly, { monthly = it })
                     Text("Repeat monthly")
+                }
+                Button(onClick = { addExpense() }, modifier = Modifier.fillMaxWidth()) { Text("Add expense") }
+                Spacer(Modifier.height(24.dp))
+            }
+        }
+    }
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+
+    Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        topBar = { LargeTopAppBar(title = { Text("Expense Tracker") }, scrollBehavior = scrollBehavior) },
+        floatingActionButton = {
+            ExtendedFloatingActionButton(
+                onClick = { showForm = true },
+                icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+                text = { Text("Add expense") }
+            )
+        }
+    ) { padding ->
+        LazyColumn(
+            Modifier.padding(padding).fillMaxSize(),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 96.dp)
+        ) {
+            item {
+                val now = remember(version) { java.time.LocalDate.now() }
+                val monthSpent = book.totalForMonth(now.year, now.monthValue)
+                val streak = loggingStreak(book.expenses, now)
+                val status = budgetStatus(monthSpent, budget, now.dayOfMonth, now.lengthOfMonth())
+                HeroCard(monthSpent, status, streak, Modifier.padding(bottom = 12.dp))
+                Row(
+                    Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("All time", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(formatNpr(book.total()), style = MaterialTheme.typography.titleMedium)
+                }
+                status.message?.let { Text(it) }
+                OutlinedTextField(
+                    budgetText,
+                    {
+                        budgetText = filterDecimalInput(budgetText, it)
+                        budget = budgetText.toDoubleOrNull()?.takeIf { v -> v > 0 } ?: 0.0
+                        prefs.edit().putLong("budget", budget.toRawBits()).apply()
+                    },
+                    label = { Text("Monthly budget (NPR)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                CategoryDonut(categoryShares(monthCategoryTotals(book.expenses, now.year, now.monthValue)))
+                Spacer(Modifier.height(12.dp))
+                WeekBars(dailyTotals(book.expenses, now))
+                Spacer(Modifier.height(12.dp))
+                book.sortedCategoryTotals().forEach { (c, t) ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(c)
+                        Text(formatNpr(t))
+                    }
                 }
                 val chips = remember(version) { recentChips(book.expenses) }
                 if (chips.isNotEmpty()) {
@@ -228,8 +244,8 @@ fun ExpenseScreen() {
                     }
                 }
             }
-            if (expenses.isEmpty()) {
-                item { EmptyState(onAdd = { focusTitle = true }) }
+            if (book.expenses.isEmpty()) {
+                item { EmptyState(onAdd = { showForm = true }) }
             }
             items(expenses, key = { it.id }) { e ->
                 ElevatedCard(Modifier.fillMaxWidth().padding(vertical = 4.dp).animateItem(
