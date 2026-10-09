@@ -16,6 +16,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color as ComposeColor
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
@@ -56,6 +57,8 @@ fun ExpenseScreen() {
     val prefs = remember { context.getSharedPreferences("expenses", Context.MODE_PRIVATE) }
     val book = remember { ExpenseBook.deserialize(prefs.getString("data", "") ?: "") }
     fun save() = prefs.edit().putString("data", book.serialize()).apply()
+    var budget by remember { mutableDoubleStateOf(Double.fromBits(prefs.getLong("budget", 0L))) }
+    var budgetText by remember { mutableStateOf(if (budget > 0) budget.toString() else "") }
     var version by remember { mutableIntStateOf(0) }
     var title by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
@@ -72,7 +75,35 @@ fun ExpenseScreen() {
             item {
                 Text("Total: " + formatNpr(book.total()), style = MaterialTheme.typography.headlineSmall)
                 val now = remember(version) { java.time.LocalDate.now() }
-                Text("This month: " + formatNpr(book.totalForMonth(now.year, now.monthValue)))
+                val monthSpent = book.totalForMonth(now.year, now.monthValue)
+                Text("This month: " + formatNpr(monthSpent))
+                val status = budgetStatus(monthSpent, budget, now.dayOfMonth, now.lengthOfMonth())
+                if (status.band != BudgetBand.NONE) {
+                    val barColor = when (status.band) {
+                        BudgetBand.GREEN -> ComposeColor(0xFF2E7D32)
+                        BudgetBand.AMBER -> ComposeColor(0xFFFFA000)
+                        else -> ComposeColor(0xFFC62828)
+                    }
+                    LinearProgressIndicator(
+                        progress = { status.progress },
+                        color = barColor,
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                            .semantics { contentDescription = "Monthly budget: " + status.remainingLabel }
+                    )
+                    Text(status.remainingLabel)
+                    status.message?.let { Text(it) }
+                }
+                OutlinedTextField(
+                    budgetText,
+                    {
+                        budgetText = it
+                        budget = it.toDoubleOrNull()?.takeIf { v -> v > 0 } ?: 0.0
+                        prefs.edit().putLong("budget", budget.toRawBits()).apply()
+                    },
+                    label = { Text("Monthly budget (NPR)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth()
+                )
                 book.sortedCategoryTotals().forEach { (c, t) ->
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(c)
