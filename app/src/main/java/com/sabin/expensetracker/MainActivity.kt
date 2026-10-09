@@ -6,7 +6,9 @@ import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
@@ -75,6 +77,37 @@ fun ExpenseScreen() {
     var monthly by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var filter by remember { mutableStateOf<String?>(null) }
+    var backupMessage by remember { mutableStateOf<String?>(null) }
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        if (uri != null) {
+            backupMessage = runCatching {
+                context.contentResolver.openOutputStream(uri, "wt")!!.use {
+                    it.write(Backup.export(book.expenses).toByteArray(Charsets.UTF_8))
+                }
+                "Backup saved"
+            }.getOrElse { "Could not save backup" }
+        }
+    }
+    val importLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            backupMessage = try {
+                val text = context.contentResolver.openInputStream(uri)!!.use {
+                    it.readBytes().toString(Charsets.UTF_8)
+                }
+                val added = book.merge(Backup.parse(text))
+                save(); version++
+                "Restored $added new expenses"
+            } catch (e: BackupException) {
+                "Invalid backup file: " + e.message
+            } catch (e: java.io.IOException) {
+                "Could not read backup"
+            }
+        }
+    }
     val expenses = remember(version, filter) { book.filterByCategory(filter) }
 
     Scaffold(topBar = { TopAppBar(title = { Text("Expense Tracker") }) }) { padding ->
@@ -174,6 +207,12 @@ fun ExpenseScreen() {
                         }
                     }
                 }
+                Spacer(Modifier.height(12.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = { exportLauncher.launch("expenses-backup.json") }) { Text("Back up") }
+                    OutlinedButton(onClick = { importLauncher.launch(arrayOf("application/json", "text/*", "application/octet-stream")) }) { Text("Restore") }
+                }
+                backupMessage?.let { Text(it) }
                 Spacer(Modifier.height(12.dp))
                 FlowRow(
                     Modifier.padding(bottom = 8.dp),
