@@ -104,6 +104,10 @@ fun ExpenseScreen() {
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth()
                 )
+                CategoryDonut(categoryShares(monthCategoryTotals(book.expenses, now.year, now.monthValue)))
+                Spacer(Modifier.height(12.dp))
+                WeekBars(dailyTotals(book.expenses, now))
+                Spacer(Modifier.height(12.dp))
                 book.sortedCategoryTotals().forEach { (c, t) ->
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(c)
