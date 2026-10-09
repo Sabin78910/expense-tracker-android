@@ -25,15 +25,12 @@ private fun colorFor(index: Int) = CHART_COLORS[index % CHART_COLORS.size]
 
 @Composable
 fun CategoryDonut(shares: List<CategoryShare>) {
+    if (shares.isEmpty()) return
     val track = MaterialTheme.colorScheme.surfaceVariant
     Column(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {
         contentDescription = donutDescription(shares)
     }) {
         Text("This month by category", style = MaterialTheme.typography.titleMedium)
-        if (shares.isEmpty()) {
-            Text("No spending this month")
-            return@Column
-        }
         Canvas(Modifier.size(160.dp).align(Alignment.CenterHorizontally).padding(8.dp)) {
             val stroke = 28.dp.toPx()
             val inset = stroke / 2
@@ -59,6 +56,7 @@ fun CategoryDonut(shares: List<CategoryShare>) {
 
 @Composable
 fun WeekBars(days: List<DayTotal>) {
+    if (days.none { it.total > 0 }) return
     val barColor = MaterialTheme.colorScheme.primary
     val max = days.maxOfOrNull { it.total } ?: 0.0
     Column(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {
@@ -76,7 +74,7 @@ fun WeekBars(days: List<DayTotal>) {
         Row(Modifier.fillMaxWidth().clearAndSetSemantics { }) {
             days.forEach {
                 Text(
-                    it.date.dayOfWeek.name.take(1) + it.date.dayOfMonth,
+                    weekdayLabel(it.date),
                     Modifier.weight(1f),
                     style = MaterialTheme.typography.labelSmall,
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
