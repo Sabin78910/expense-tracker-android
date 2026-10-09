@@ -46,7 +46,22 @@ class MainActivity : ComponentActivity() {
             statusBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT)
         )
-        setContent { ExpenseTheme { ExpenseScreen() } }
+        val prefs = getSharedPreferences("expenses", Context.MODE_PRIVATE)
+        val firstRun = FirstRun(object : FlagStore {
+            override fun get() = prefs.getBoolean("onboarding_done", false)
+            override fun set(value: Boolean) = prefs.edit().putBoolean("onboarding_done", value).apply()
+        })
+        setContent {
+            ExpenseTheme {
+                var onboarding by remember { mutableStateOf(firstRun.shouldShow()) }
+                var openForm by remember { mutableStateOf(false) }
+                if (onboarding) {
+                    OnboardingScreen(firstRun) { open -> openForm = open; onboarding = false }
+                } else {
+                    ExpenseScreen(startWithForm = openForm)
+                }
+            }
+        }
     }
 }
 
@@ -64,7 +79,7 @@ fun ExpenseTheme(content: @Composable () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-fun ExpenseScreen() {
+fun ExpenseScreen(startWithForm: Boolean = false) {
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("expenses", Context.MODE_PRIVATE) }
     val book = remember { ExpenseBook.deserialize(prefs.getString("data", "") ?: "") }
@@ -85,7 +100,7 @@ fun ExpenseScreen() {
     var monthly by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var filter by remember { mutableStateOf<String?>(null) }
-    var showForm by remember { mutableStateOf(false) }
+    var showForm by remember { mutableStateOf(startWithForm) }
     var backupMessage by remember { mutableStateOf<String?>(null) }
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json")
@@ -137,12 +152,14 @@ fun ExpenseScreen() {
         ModalBottomSheet(onDismissRequest = { showForm = false }) {
             Column(Modifier.padding(horizontal = 16.dp).verticalScroll(rememberScrollState())) {
                 val titleFocus = remember { FocusRequester() }
-                LaunchedEffect(Unit) { titleFocus.requestFocus() }
+                val amountFocus = remember { FocusRequester() }
+                // First-run: open straight onto the amount keypad.
+                LaunchedEffect(Unit) { (if (startWithForm && book.expenses.isEmpty()) amountFocus else titleFocus).requestFocus() }
                 OutlinedTextField(title, { title = it }, label = { Text("Title") }, modifier = Modifier.fillMaxWidth().focusRequester(titleFocus))
                 OutlinedTextField(
                     amount, { amount = filterDecimalInput(amount, it) }, label = { Text("Amount") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().focusRequester(amountFocus)
                 )
                 FlowRow(
                     Modifier.padding(vertical = 8.dp),
