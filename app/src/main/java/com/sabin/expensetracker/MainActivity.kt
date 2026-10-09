@@ -10,6 +10,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -20,6 +22,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color as ComposeColor
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -79,6 +83,7 @@ fun ExpenseScreen() {
     var monthly by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var filter by remember { mutableStateOf<String?>(null) }
+    var focusTitle by remember { mutableStateOf(false) }
     var backupMessage by remember { mutableStateOf<String?>(null) }
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json")
@@ -144,35 +149,13 @@ fun ExpenseScreen() {
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 96.dp)
         ) {
             item {
-                ElevatedCard(Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
-                    Column(Modifier.padding(20.dp)) {
-                        Text("Total", style = MaterialTheme.typography.labelLarge)
-                        Text(formatNpr(book.total()), style = MaterialTheme.typography.displayMedium)
-                    }
-                }
                 val now = remember(version) { java.time.LocalDate.now() }
                 val monthSpent = book.totalForMonth(now.year, now.monthValue)
-                Text("This month: " + formatNpr(monthSpent))
                 val streak = loggingStreak(book.expenses, now)
-                if (streak.current > 0 || streak.best > 0) {
-                    Text(streakLabel(streak) + " (best " + streak.best + ")")
-                }
                 val status = budgetStatus(monthSpent, budget, now.dayOfMonth, now.lengthOfMonth())
-                if (status.band != BudgetBand.NONE) {
-                    val barColor = when (status.band) {
-                        BudgetBand.GREEN -> ComposeColor(0xFF2E7D32)
-                        BudgetBand.AMBER -> ComposeColor(0xFFFFA000)
-                        else -> ComposeColor(0xFFC62828)
-                    }
-                    LinearProgressIndicator(
-                        progress = { status.progress },
-                        color = barColor,
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
-                            .semantics { contentDescription = "Monthly budget: " + status.remainingLabel }
-                    )
-                    Text(status.remainingLabel)
-                    status.message?.let { Text(it) }
-                }
+                HeroCard(monthSpent, status, streak, Modifier.padding(bottom = 12.dp))
+                Text("All time: " + formatNpr(book.total()), style = MaterialTheme.typography.labelLarge)
+                status.message?.let { Text(it) }
                 OutlinedTextField(
                     budgetText,
                     {
@@ -195,7 +178,9 @@ fun ExpenseScreen() {
                     }
                 }
                 Spacer(Modifier.height(12.dp))
-                OutlinedTextField(title, { title = it }, label = { Text("Title") }, modifier = Modifier.fillMaxWidth())
+                val titleFocus = remember { FocusRequester() }
+                LaunchedEffect(focusTitle) { if (focusTitle) { titleFocus.requestFocus(); focusTitle = false } }
+                OutlinedTextField(title, { title = it }, label = { Text("Title") }, modifier = Modifier.fillMaxWidth().focusRequester(titleFocus))
                 OutlinedTextField(
                     amount, { amount = it }, label = { Text("Amount") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -243,22 +228,31 @@ fun ExpenseScreen() {
                     }
                 }
             }
+            if (expenses.isEmpty()) {
+                item { EmptyState(onAdd = { focusTitle = true }) }
+            }
             items(expenses, key = { it.id }) { e ->
-                ListItem(
-                    headlineContent = { Text(e.title) },
-                    supportingContent = { Text(e.category) },
-                    trailingContent = {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(formatNpr(e.amount))
-                            TextButton(
-                                onClick = { book.remove(e.id); save(); version++ },
-                                modifier = Modifier
-                                    .minimumInteractiveComponentSize()
-                                    .semantics { contentDescription = deleteLabel(e.title) }
-                            ) { Text("Delete") }
+                ElevatedCard(Modifier.fillMaxWidth().padding(vertical = 4.dp).animateItem(
+                    fadeInSpec = spring(), placementSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                    fadeOutSpec = spring()
+                )) {
+                    ListItem(
+                        leadingContent = { CategoryBadge(e.category) },
+                        headlineContent = { Text(e.title) },
+                        supportingContent = { Text(e.category) },
+                        trailingContent = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(formatNpr(e.amount))
+                                TextButton(
+                                    onClick = { book.remove(e.id); save(); version++ },
+                                    modifier = Modifier
+                                        .minimumInteractiveComponentSize()
+                                        .semantics { contentDescription = deleteLabel(e.title) }
+                                ) { Text("Delete") }
+                            }
                         }
-                    }
-                )
+                    )
+                }
             }
         }
     }
