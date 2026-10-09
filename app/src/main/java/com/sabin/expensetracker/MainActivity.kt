@@ -43,6 +43,12 @@ fun ExpenseScreen() {
     Scaffold(topBar = { TopAppBar(title = { Text("Expense Tracker") }) }) { padding ->
         Column(Modifier.padding(padding).padding(16.dp).fillMaxSize()) {
             Text("Total: NPR %.2f".format(book.total()), style = MaterialTheme.typography.headlineSmall)
+            book.sortedCategoryTotals().forEach { (c, t) ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(c)
+                    Text("NPR %.2f".format(t))
+                }
+            }
             Spacer(Modifier.height(12.dp))
             OutlinedTextField(title, { title = it }, label = { Text("Title") }, modifier = Modifier.fillMaxWidth())
             OutlinedTextField(

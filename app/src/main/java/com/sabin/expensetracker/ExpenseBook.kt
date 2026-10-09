@@ -28,6 +28,10 @@ class ExpenseBook(initial: List<Expense> = emptyList()) {
     fun totalsByCategory(): Map<String, Double> =
         items.groupBy { it.category }.mapValues { (_, list) -> list.sumOf { it.amount } }
 
+    /** Category totals, highest first. */
+    fun sortedCategoryTotals(): List<Pair<String, Double>> =
+        totalsByCategory().toList().sortedByDescending { it.second }
+
     /** One expense per line, tab-separated: id, title, amount, category (fields escaped). */
     fun serialize(): String = items.joinToString("\n") {
         listOf(it.id.toString(), escape(it.title), it.amount.toString(), escape(it.category))
