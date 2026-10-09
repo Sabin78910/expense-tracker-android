@@ -2,11 +2,13 @@ package com.sabin.expensetracker
 
 import android.content.Context
 import android.graphics.Color
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -16,6 +18,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 
@@ -25,11 +29,24 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT),
-            navigationBarStyle = SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
+            statusBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT)
         )
-        setContent { MaterialTheme { ExpenseScreen() } }
+        setContent { ExpenseTheme { ExpenseScreen() } }
     }
+}
+
+@Composable
+fun ExpenseTheme(content: @Composable () -> Unit) {
+    val dark = isSystemInDarkTheme()
+    val context = LocalContext.current
+    val scheme = when {
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ->
+            if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        dark -> darkColorScheme()
+        else -> lightColorScheme()
+    }
+    MaterialTheme(colorScheme = scheme, content = content)
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -101,7 +118,12 @@ fun ExpenseScreen() {
                     trailingContent = {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(formatNpr(e.amount))
-                            TextButton(onClick = { book.remove(e.id); save(); version++ }) { Text("Delete") }
+                            TextButton(
+                                onClick = { book.remove(e.id); save(); version++ },
+                                modifier = Modifier
+                                    .minimumInteractiveComponentSize()
+                                    .semantics { contentDescription = deleteLabel(e.title) }
+                            ) { Text("Delete") }
                         }
                     }
                 )
