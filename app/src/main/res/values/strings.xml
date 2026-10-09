@@ -1,4 +1,6 @@
 <resources>
     <string name="app_name">Expense Tracker</string>
     <string name="widget_description">This month\'s spending and budget</string>
+    <string name="reminder_channel">Daily reminder</string>
+    <string name="reminder_text">Log today\'s expenses to keep your streak going.</string>
 </resources>

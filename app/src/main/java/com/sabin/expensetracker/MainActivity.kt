@@ -252,6 +252,8 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
                     }
                 }
                 Spacer(Modifier.height(12.dp))
+                ReminderSettings()
+                Spacer(Modifier.height(12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = { exportLauncher.launch("expenses-backup.json") }) { Text("Back up") }
                     OutlinedButton(onClick = { importLauncher.launch(arrayOf("application/json", "text/*", "application/octet-stream")) }) { Text("Restore") }
@@ -295,5 +297,49 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
                 }
             }
         }
+    }
+}
+
+@Composable
+fun ReminderSettings() {
+    val context = LocalContext.current
+    var on by remember { mutableStateOf(ReminderScheduler.isEnabled(context)) }
+    var time by remember { mutableStateOf(ReminderScheduler.time(context)) }
+    var explain by remember { mutableStateOf(false) }
+    val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        on = granted
+        ReminderScheduler.setEnabled(context, granted)
+    }
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        Text("Remind me to log expenses")
+        Switch(checked = on, onCheckedChange = { want ->
+            when {
+                !want -> { on = false; ReminderScheduler.setEnabled(context, false) }
+                Build.VERSION.SDK_INT < 33 -> { on = true; ReminderScheduler.setEnabled(context, true) }
+                else -> explain = true
+            }
+        })
+    }
+    if (on) {
+        TextButton(onClick = {
+            android.app.TimePickerDialog(context, { _, h, m ->
+                time = java.time.LocalTime.of(h, m)
+                ReminderScheduler.setTime(context, time)
+            }, time.hour, time.minute, true).show()
+        }) { Text("Reminder time: %02d:%02d".format(time.hour, time.minute)) }
+    }
+    if (explain) {
+        AlertDialog(
+            onDismissRequest = { explain = false },
+            title = { Text("Allow notifications?") },
+            text = { Text("We need notification permission to send one gentle reminder a day, only on days you haven't logged an expense. You can turn it off any time.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    explain = false
+                    permission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                }) { Text("Continue") }
+            },
+            dismissButton = { TextButton(onClick = { explain = false }) { Text("Not now") } }
+        )
     }
 }
