@@ -19,6 +19,10 @@ class ExpenseBook(initial: List<Expense> = emptyList()) {
         items.removeAll { it.id == id }
     }
 
+    /** Expenses in [category], or all expenses when [category] is null. */
+    fun filterByCategory(category: String?): List<Expense> =
+        if (category == null) expenses else items.filter { it.category == category }
+
     fun total(): Double = items.sumOf { it.amount }
 
     fun totalsByCategory(): Map<String, Double> =
