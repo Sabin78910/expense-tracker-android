@@ -20,6 +20,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color as ComposeColor
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -48,10 +51,9 @@ fun ExpenseTheme(content: @Composable () -> Unit) {
     val scheme = when {
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ->
             if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        dark -> darkColorScheme()
-        else -> lightColorScheme()
+        else -> fallbackColorScheme(dark)
     }
-    MaterialTheme(colorScheme = scheme, content = content)
+    MaterialTheme(colorScheme = scheme, shapes = expenseShapes(), typography = expenseTypography(), content = content)
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -110,13 +112,44 @@ fun ExpenseScreen() {
     }
     val expenses = remember(version, filter) { book.filterByCategory(filter) }
 
-    Scaffold(topBar = { TopAppBar(title = { Text("Expense Tracker") }) }) { padding ->
+    fun addExpense() {
+        runCatching {
+            val value = amount.toDoubleOrNull() ?: 0.0
+            val e = book.add(title, value, category)
+            if (monthly) {
+                val day = Instant.ofEpochMilli(e.timestamp).atZone(ZoneId.systemDefault()).dayOfMonth
+                recurring.add(title, value, category, day)
+                // Today's occurrence is the expense just added.
+                recurring.applyDue(ExpenseBook(), java.time.LocalDate.now())
+            }
+        }
+            .onSuccess { title = ""; amount = ""; monthly = false; error = null; save(); version++ }
+            .onFailure { error = it.message }
+    }
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+
+    Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        topBar = { LargeTopAppBar(title = { Text("Expense Tracker") }, scrollBehavior = scrollBehavior) },
+        floatingActionButton = {
+            ExtendedFloatingActionButton(
+                onClick = { addExpense() },
+                icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+                text = { Text("Add expense") }
+            )
+        }
+    ) { padding ->
         LazyColumn(
             Modifier.padding(padding).fillMaxSize(),
-            contentPadding = PaddingValues(16.dp)
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 96.dp)
         ) {
             item {
-                Text("Total: " + formatNpr(book.total()), style = MaterialTheme.typography.headlineSmall)
+                ElevatedCard(Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
+                    Column(Modifier.padding(20.dp)) {
+                        Text("Total", style = MaterialTheme.typography.labelLarge)
+                        Text(formatNpr(book.total()), style = MaterialTheme.typography.displayMedium)
+                    }
+                }
                 val now = remember(version) { java.time.LocalDate.now() }
                 val monthSpent = book.totalForMonth(now.year, now.monthValue)
                 Text("This month: " + formatNpr(monthSpent))
@@ -181,20 +214,6 @@ fun ExpenseScreen() {
                     Checkbox(monthly, { monthly = it })
                     Text("Repeat monthly")
                 }
-                Button(onClick = {
-                    runCatching {
-                        val value = amount.toDoubleOrNull() ?: 0.0
-                        val e = book.add(title, value, category)
-                        if (monthly) {
-                            val day = Instant.ofEpochMilli(e.timestamp).atZone(ZoneId.systemDefault()).dayOfMonth
-                            recurring.add(title, value, category, day)
-                            // Today's occurrence is the expense just added.
-                            recurring.applyDue(ExpenseBook(), java.time.LocalDate.now())
-                        }
-                    }
-                        .onSuccess { title = ""; amount = ""; monthly = false; error = null; save(); version++ }
-                        .onFailure { error = it.message }
-                }, modifier = Modifier.fillMaxWidth()) { Text("Add expense") }
                 val chips = remember(version) { recentChips(book.expenses) }
                 if (chips.isNotEmpty()) {
                     Text("Recent", style = MaterialTheme.typography.labelLarge)
