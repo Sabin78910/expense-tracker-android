@@ -48,6 +48,7 @@ class MainActivity : ComponentActivity() {
             navigationBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT)
         )
         val prefs = getSharedPreferences("expenses", Context.MODE_PRIVATE)
+        prefs.edit().putInt("launch_count", prefs.getInt("launch_count", 0) + 1).apply()
         val firstRun = FirstRun(object : FlagStore {
             override fun get() = prefs.getBoolean("onboarding_done", false)
             override fun set(value: Boolean) = prefs.edit().putBoolean("onboarding_done", value).apply()
@@ -119,6 +120,23 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
             unlocked = unlocked + fresh
             prefs.edit().putString("badges", BadgeStore.serialize(unlocked)).apply()
             celebrate = fresh
+            val activity = context as? android.app.Activity
+            if (activity != null) {
+                val manager = com.google.android.play.core.review.ReviewManagerFactory.create(activity)
+                ReviewPrompt(
+                    object : ReviewLauncher {
+                        override fun launch() {
+                            manager.requestReviewFlow().addOnSuccessListener { info ->
+                                manager.launchReviewFlow(activity, info)
+                            }
+                        }
+                    },
+                    object : ReviewStore {
+                        override fun lastAskedMillis() = prefs.getLong("review_last_ms", -1L).takeIf { it >= 0 }
+                        override fun setLastAskedMillis(value: Long) = prefs.edit().putLong("review_last_ms", value).apply()
+                    }
+                ).onPositiveMoment(fresh, System.currentTimeMillis(), prefs.getInt("launch_count", 0), error != null)
+            }
         }
     }
     if (celebrate.isNotEmpty()) UnlockCelebration(celebrate) { celebrate = emptySet() }
