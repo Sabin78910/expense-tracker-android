@@ -23,6 +23,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import java.time.Instant
+import java.time.ZoneId
 
 val CATEGORIES = listOf("Food", "Transport", "Bills", "Shopping", "Other")
 
@@ -56,13 +58,21 @@ fun ExpenseScreen() {
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("expenses", Context.MODE_PRIVATE) }
     val book = remember { ExpenseBook.deserialize(prefs.getString("data", "") ?: "") }
-    fun save() = prefs.edit().putString("data", book.serialize()).apply()
+    val recurring = remember {
+        RecurringList.deserialize(prefs.getString("recurring", "") ?: "").also {
+            if (it.applyDue(book, java.time.LocalDate.now()) > 0) {
+                prefs.edit().putString("data", book.serialize()).putString("recurring", it.serialize()).apply()
+            }
+        }
+    }
+    fun save() = prefs.edit().putString("data", book.serialize()).putString("recurring", recurring.serialize()).apply()
     var budget by remember { mutableDoubleStateOf(Double.fromBits(prefs.getLong("budget", 0L))) }
     var budgetText by remember { mutableStateOf(if (budget > 0) budget.toString() else "") }
     var version by remember { mutableIntStateOf(0) }
     var title by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
     var category by remember { mutableStateOf(CATEGORIES.first()) }
+    var monthly by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var filter by remember { mutableStateOf<String?>(null) }
     val expenses = remember(version, filter) { book.filterByCategory(filter) }
@@ -134,11 +144,36 @@ fun ExpenseScreen() {
                     }
                 }
                 error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(monthly, { monthly = it })
+                    Text("Repeat monthly")
+                }
                 Button(onClick = {
-                    runCatching { book.add(title, amount.toDoubleOrNull() ?: 0.0, category) }
-                        .onSuccess { title = ""; amount = ""; error = null; save(); version++ }
+                    runCatching {
+                        val value = amount.toDoubleOrNull() ?: 0.0
+                        val e = book.add(title, value, category)
+                        if (monthly) {
+                            val day = Instant.ofEpochMilli(e.timestamp).atZone(ZoneId.systemDefault()).dayOfMonth
+                            recurring.add(title, value, category, day)
+                            // Today's occurrence is the expense just added.
+                            recurring.applyDue(ExpenseBook(), java.time.LocalDate.now())
+                        }
+                    }
+                        .onSuccess { title = ""; amount = ""; monthly = false; error = null; save(); version++ }
                         .onFailure { error = it.message }
                 }, modifier = Modifier.fillMaxWidth()) { Text("Add expense") }
+                val chips = remember(version) { recentChips(book.expenses) }
+                if (chips.isNotEmpty()) {
+                    Text("Recent", style = MaterialTheme.typography.labelLarge)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        chips.forEach { c ->
+                            AssistChip(
+                                onClick = { book.add(c.category, c.amount, c.category); save(); version++ },
+                                label = { Text(c.category + " " + formatNpr(c.amount)) }
+                            )
+                        }
+                    }
+                }
                 Spacer(Modifier.height(12.dp))
                 FlowRow(
                     Modifier.padding(bottom = 8.dp),
