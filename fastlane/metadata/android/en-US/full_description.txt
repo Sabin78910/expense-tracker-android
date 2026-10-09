@@ -1,0 +1,15 @@
+Expense Tracker is a simple, private way to log what you spend and see where your money goes.
+
+FEATURES
+• Add an expense in seconds: title, amount (NPR) and category
+• Categories: Food, Transport, Bills, Shopping, Other
+• See your total and per-category totals at a glance
+• Filter by category and check this month's spending
+• Delete entries you added by mistake
+
+PRIVATE BY DESIGN
+• Works fully offline: no internet permission
+• No account, no ads, no tracking
+• Your data stays only on your phone
+
+Privacy policy: https://sabin78910.github.io/privacy-policy/#expense-tracker
