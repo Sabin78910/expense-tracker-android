@@ -13,6 +13,18 @@ class ExpenseBookTest {
         assertEquals(280.0, book.totalsByCategory()["Food"]!!, 0.001)
     }
 
+    @Test fun categoryTotalsSortedHighestFirst() {
+        val book = ExpenseBook()
+        book.add("Bus", 50.0, "Transport")
+        book.add("Momo", 250.0, "Food")
+        book.add("Rent", 10000.0, "Bills")
+        book.add("Tea", 30.0, "Food")
+        assertEquals(
+            listOf("Bills" to 10000.0, "Food" to 280.0, "Transport" to 50.0),
+            book.sortedCategoryTotals()
+        )
+    }
+
     @Test fun removeDeletesExpense() {
         val book = ExpenseBook()
         val e = book.add("Rent", 10000.0, "Bills")
