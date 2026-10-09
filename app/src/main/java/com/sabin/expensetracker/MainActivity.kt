@@ -108,6 +108,21 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
     var filter by remember { mutableStateOf<String?>(null) }
     var showForm by remember { mutableStateOf(startWithForm) }
     var backupMessage by remember { mutableStateOf<String?>(null) }
+    var backedUp by remember { mutableStateOf(prefs.getBoolean("backed_up", false)) }
+    var unlocked by remember { mutableStateOf(BadgeStore.parse(prefs.getString("badges", "") ?: "")) }
+    var celebrate by remember { mutableStateOf(emptySet<Badge>()) }
+    var showShelf by remember { mutableStateOf(false) }
+    LaunchedEffect(version, backedUp, budget) {
+        val now = earnedBadges(book.expenses, budget, backedUp, java.time.LocalDate.now())
+        val fresh = newlyUnlocked(unlocked, now)
+        if (fresh.isNotEmpty()) {
+            unlocked = unlocked + fresh
+            prefs.edit().putString("badges", BadgeStore.serialize(unlocked)).apply()
+            celebrate = fresh
+        }
+    }
+    if (celebrate.isNotEmpty()) UnlockCelebration(celebrate) { celebrate = emptySet() }
+    if (showShelf) BadgeShelf(unlocked) { showShelf = false }
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json")
     ) { uri ->
@@ -116,6 +131,8 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
                 context.contentResolver.openOutputStream(uri, "wt")!!.use {
                     it.write(Backup.export(book.expenses).toByteArray(Charsets.UTF_8))
                 }
+                prefs.edit().putBoolean("backed_up", true).apply()
+                backedUp = true
                 "Backup saved"
             }.getOrElse { "Could not save backup" }
         }
@@ -259,6 +276,7 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
                     OutlinedButton(onClick = { importLauncher.launch(arrayOf("application/json", "text/*", "application/octet-stream")) }) { Text("Restore") }
                 }
                 backupMessage?.let { Text(it) }
+                OutlinedButton(onClick = { showShelf = true }) { Text("Badges (${unlocked.size}/${Badge.values().size})") }
                 Spacer(Modifier.height(12.dp))
                 FlowRow(
                     Modifier.padding(bottom = 8.dp),
