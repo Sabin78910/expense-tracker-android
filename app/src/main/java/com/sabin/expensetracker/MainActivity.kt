@@ -77,6 +77,10 @@ fun ExpenseScreen() {
                 val now = remember(version) { java.time.LocalDate.now() }
                 val monthSpent = book.totalForMonth(now.year, now.monthValue)
                 Text("This month: " + formatNpr(monthSpent))
+                val streak = loggingStreak(book.expenses, now)
+                if (streak.current > 0 || streak.best > 0) {
+                    Text(streakLabel(streak) + " (best " + streak.best + ")")
+                }
                 val status = budgetStatus(monthSpent, budget, now.dayOfMonth, now.lengthOfMonth())
                 if (status.band != BudgetBand.NONE) {
                     val barColor = when (status.band) {
