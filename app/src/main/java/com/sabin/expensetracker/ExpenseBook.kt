@@ -30,6 +30,23 @@ class ExpenseBook(initial: List<Expense> = emptyList()) {
         return Expense(nextId++, title.trim(), amount, category, timestamp).also { items.add(0, it) }
     }
 
+    /**
+     * Adds [imported] expenses not already present (same title, amount, category and timestamp),
+     * giving each a fresh id. Returns how many were added.
+     */
+    fun merge(imported: List<Expense>): Int {
+        fun key(e: Expense) = listOf(e.title, e.amount, e.category, e.timestamp)
+        val seen = items.map(::key).toMutableSet()
+        var added = 0
+        imported.forEach { e ->
+            if (seen.add(key(e))) {
+                items.add(e.copy(id = nextId++))
+                added++
+            }
+        }
+        return added
+    }
+
     fun remove(id: Long) {
         items.removeAll { it.id == id }
     }
