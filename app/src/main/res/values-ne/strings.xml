@@ -83,4 +83,10 @@
     <string name="add_category">वर्ग थप्नुहोस्</string>
     <string name="remove_category">वर्ग %1$s हटाउनुहोस्</string>
     <string name="remove_category_message">%1$s का खर्चहरू अन्यमा सारिनेछन्।</string>
+    <string name="compare_less">यस बिन्दुमा गत महिनाभन्दा %1$d%% कम</string>
+    <string name="compare_more">यस बिन्दुमा गत महिनाभन्दा %1$d%% बढी</string>
+    <string name="compare_same">यस बिन्दुमा गत महिनाकै बराबर</string>
+    <string name="compare_none_last">गत महिना यस बिन्दुसम्म केही खर्च भएको थिएन</string>
+    <string name="compare_category_less">%1$s: गत महिनाभन्दा %2$s कम</string>
+    <string name="compare_category_more">%1$s: गत महिनाभन्दा %2$s बढी</string>
 </resources>
