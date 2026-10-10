@@ -61,4 +61,6 @@
     <string name="badge_budget_desc">Stay within budget for a whole month</string>
     <string name="badge_backup_title">Safety net</string>
     <string name="badge_backup_desc">Back up your expenses</string>
+    <string name="expense_deleted">Expense deleted</string>
+    <string name="undo">Undo</string>
 </resources>

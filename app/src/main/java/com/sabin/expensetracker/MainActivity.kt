@@ -233,10 +233,23 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
             }
         }
     }
+    val snackbarHost = remember { SnackbarHostState() }
+    val deletedMsg = stringResource(R.string.expense_deleted)
+    val undoLabel = stringResource(R.string.undo)
+    fun deleteWithUndo(e: Expense) {
+        book.remove(e.id); save(); version++
+        scope.launch {
+            snackbarHost.currentSnackbarData?.dismiss()
+            if (snackbarHost.showSnackbar(deletedMsg, undoLabel, duration = SnackbarDuration.Short) == SnackbarResult.ActionPerformed) {
+                book.restore(e); save(); version++
+            }
+        }
+    }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        snackbarHost = { SnackbarHost(snackbarHost) },
         topBar = { LargeTopAppBar(title = { Text(stringResource(R.string.app_name)) }, scrollBehavior = scrollBehavior) },
         floatingActionButton = {
             ExtendedFloatingActionButton(
@@ -336,7 +349,7 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(formatNpr(e.amount))
                                 TextButton(
-                                    onClick = { book.remove(e.id); save(); version++ },
+                                    onClick = { deleteWithUndo(e) },
                                     modifier = Modifier
                                         .minimumInteractiveComponentSize()
                                         .semantics { contentDescription = deleteLabel(e.title) }

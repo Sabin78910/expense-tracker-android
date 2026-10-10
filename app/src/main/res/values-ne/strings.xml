@@ -61,4 +61,6 @@
     <string name="badge_budget_desc">पूरा महिना बजेटभित्र रहनुहोस्</string>
     <string name="badge_backup_title">सुरक्षा जाल</string>
     <string name="badge_backup_desc">आफ्ना खर्चको ब्याकअप राख्नुहोस्</string>
+    <string name="expense_deleted">खर्च मेटाइयो</string>
+    <string name="undo">पूर्ववत गर्नुहोस्</string>
 </resources>

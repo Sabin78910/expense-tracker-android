@@ -51,6 +51,14 @@ class ExpenseBook(initial: List<Expense> = emptyList()) {
         items.removeAll { it.id == id }
     }
 
+    /** Re-inserts a removed [expense] with its original id; no-op if that id is present. */
+    fun restore(expense: Expense) {
+        if (items.any { it.id == expense.id }) return
+        val at = items.indexOfFirst { it.id < expense.id }
+        items.add(if (at < 0) items.size else at, expense)
+        if (expense.id >= nextId) nextId = expense.id + 1
+    }
+
     /** Expenses in [category], or all expenses when [category] is null. */
     fun filterByCategory(category: String?): List<Expense> =
         if (category == null) expenses else items.filter { it.category == category }
