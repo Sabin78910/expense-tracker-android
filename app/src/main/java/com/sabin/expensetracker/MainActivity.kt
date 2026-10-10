@@ -403,7 +403,8 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
                     MonthSelection.previous(month, earliestMonth)?.let { m -> { selectedMonth = m } },
                     MonthSelection.next(month, currentMonth)?.let { m -> { selectedMonth = m } },
                     compareWithPreviousMonth(book.expenses, month, now),
-                    Modifier.padding(bottom = 12.dp)
+                    Modifier.padding(bottom = 12.dp),
+                    budget
                 )
                 Row(
                     Modifier.fillMaxWidth().padding(vertical = 4.dp),
@@ -426,7 +427,9 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth()
                 )
-                CategoryDonut(categoryShares(monthCategoryTotals(book.expenses, month.year, month.monthValue)))
+                val shares = categoryShares(monthCategoryTotals(book.expenses, month.year, month.monthValue))
+                CategoryChips(shares)
+                CategoryDonut(shares)
                 Spacer(Modifier.height(12.dp))
                 WeekBars(dailyTotals(book.expenses, now))
                 Spacer(Modifier.height(12.dp))
