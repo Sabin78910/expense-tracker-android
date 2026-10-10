@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -52,6 +53,7 @@ class MainActivity : ComponentActivity() {
             override fun get() = prefs.getBoolean("onboarding_done", false)
             override fun set(value: Boolean) = prefs.edit().putBoolean("onboarding_done", value).apply()
         })
+        if (privacyMode(this).enabled) applyPrivacy(this, true)
         val fromWidgetAdd = intent.getBooleanExtra(EXTRA_OPEN_FORM, false)
         setContent {
             ExpenseTheme {
@@ -459,6 +461,8 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
                 Spacer(Modifier.height(12.dp))
                 ReminderSettings()
                 Spacer(Modifier.height(12.dp))
+                PrivacySettings()
+                Spacer(Modifier.height(12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = { exportLauncher.launch("expenses-backup.json") }) { Text(stringResource(R.string.back_up)) }
                     OutlinedButton(onClick = { csvLauncher.launch("expenses.csv") }) { Text(stringResource(R.string.export_csv)) }
@@ -533,6 +537,43 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
                 }
             }
         }
+    }
+}
+
+fun privacyMode(context: Context): PrivacyMode {
+    val prefs = context.getSharedPreferences("expenses", Context.MODE_PRIVATE)
+    return PrivacyMode(object : FlagStore {
+        override fun get() = prefs.getBoolean("privacy_mode", false)
+        override fun set(value: Boolean) = prefs.edit().putBoolean("privacy_mode", value).apply()
+    })
+}
+
+fun applyPrivacy(activity: ComponentActivity, on: Boolean) {
+    if (on) activity.window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
+    else activity.window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+}
+
+@Composable
+fun PrivacySettings() {
+    val context = LocalContext.current
+    val mode = remember { privacyMode(context) }
+    var on by remember { mutableStateOf(mode.enabled) }
+    val label = stringResource(R.string.hide_content)
+    val state = stringResource(if (on) R.string.state_on else R.string.state_off)
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            Text(label)
+            Text(stringResource(R.string.hide_content_hint), style = MaterialTheme.typography.bodySmall)
+        }
+        Switch(
+            checked = on,
+            onCheckedChange = { want ->
+                on = want
+                mode.setEnabled(want)
+                (context as? ComponentActivity)?.let { applyPrivacy(it, want) }
+            },
+            modifier = Modifier.semantics { contentDescription = "$label, $state" }
+        )
     }
 }
 

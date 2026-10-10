@@ -89,4 +89,8 @@
     <string name="compare_none_last">Nothing spent at this point last month</string>
     <string name="compare_category_less">%1$s: %2$s less than last month</string>
     <string name="compare_category_more">%1$s: %2$s more than last month</string>
+    <string name="hide_content">Hide app content</string>
+    <string name="hide_content_hint">Blanks the recent-apps preview and blocks screenshots.</string>
+    <string name="state_on">On</string>
+    <string name="state_off">Off</string>
 </resources>

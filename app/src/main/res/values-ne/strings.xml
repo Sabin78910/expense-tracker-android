@@ -89,4 +89,8 @@
     <string name="compare_none_last">गत महिना यस बिन्दुसम्म केही खर्च भएको थिएन</string>
     <string name="compare_category_less">%1$s: गत महिनाभन्दा %2$s कम</string>
     <string name="compare_category_more">%1$s: गत महिनाभन्दा %2$s बढी</string>
+    <string name="hide_content">एपको सामग्री लुकाउनुहोस्</string>
+    <string name="hide_content_hint">हालका एप पूर्वावलोकन खाली गर्छ र स्क्रिनसट रोक्छ।</string>
+    <string name="state_on">खुला</string>
+    <string name="state_off">बन्द</string>
 </resources>
