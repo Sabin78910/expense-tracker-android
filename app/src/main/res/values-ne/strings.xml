@@ -10,6 +10,9 @@
     <string name="all_time">सबै समय</string>
     <string name="monthly_budget">मासिक बजेट (NPR)</string>
     <string name="recent">हालका</string>
+    <string name="export_csv">CSV निर्यात</string>
+    <string name="csv_saved">CSV निर्यात गरियो</string>
+    <string name="csv_save_failed">CSV निर्यात गर्न सकिएन</string>
     <string name="back_up">ब्याकअप</string>
     <string name="badges_count">ब्याज (%1$d/%2$d)</string>
     <string name="all">सबै</string>

@@ -156,6 +156,18 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
             }.getOrElse { context.getString(R.string.backup_save_failed) }
         }
     }
+    val csvLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("text/csv")
+    ) { uri ->
+        if (uri != null) {
+            backupMessage = runCatching {
+                context.contentResolver.openOutputStream(uri, "wt")!!.use {
+                    it.write(CsvExport.export(book.expenses, java.time.ZoneId.systemDefault()).toByteArray(Charsets.UTF_8))
+                }
+                context.getString(R.string.csv_saved)
+            }.getOrElse { context.getString(R.string.csv_save_failed) }
+        }
+    }
     val importLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri ->
@@ -292,6 +304,7 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
                 Spacer(Modifier.height(12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = { exportLauncher.launch("expenses-backup.json") }) { Text(stringResource(R.string.back_up)) }
+                    OutlinedButton(onClick = { csvLauncher.launch("expenses.csv") }) { Text(stringResource(R.string.export_csv)) }
                     OutlinedButton(onClick = { importLauncher.launch(arrayOf("application/json", "text/*", "application/octet-stream")) }) { Text("Restore") }
                 }
                 backupMessage?.let { Text(it) }

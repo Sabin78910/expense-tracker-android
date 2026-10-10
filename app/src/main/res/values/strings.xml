@@ -10,6 +10,9 @@
     <string name="all_time">All time</string>
     <string name="monthly_budget">Monthly budget (NPR)</string>
     <string name="recent">Recent</string>
+    <string name="export_csv">Export CSV</string>
+    <string name="csv_saved">CSV exported</string>
+    <string name="csv_save_failed">Could not export CSV</string>
     <string name="back_up">Back up</string>
     <string name="badges_count">Badges (%1$d/%2$d)</string>
     <string name="all">All</string>
