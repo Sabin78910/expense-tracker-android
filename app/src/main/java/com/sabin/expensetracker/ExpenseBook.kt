@@ -31,6 +31,17 @@ class ExpenseBook(initial: List<Expense> = emptyList()) {
     }
 
     /**
+     * Replaces title, amount and category of expense [id], keeping its id, timestamp and position.
+     * Validates like [add]; an unknown [id] is a no-op.
+     */
+    fun update(id: Long, title: String, amount: Double, category: String) {
+        require(title.isNotBlank()) { "Title is required" }
+        require(amount > 0) { "Amount must be positive" }
+        val i = items.indexOfFirst { it.id == id }
+        if (i >= 0) items[i] = items[i].copy(title = title.trim(), amount = amount, category = category)
+    }
+
+    /**
      * Adds [imported] expenses not already present (same title, amount, category and timestamp),
      * giving each a fresh id. Returns how many were added.
      */
