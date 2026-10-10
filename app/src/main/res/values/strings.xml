@@ -95,4 +95,9 @@
     <string name="hide_content_hint">Blanks the recent-apps preview and blocks screenshots.</string>
     <string name="state_on">On</string>
     <string name="state_off">Off</string>
+    <string name="streak_milestone_title">%d-day streak!</string>
+    <string name="streak_milestone_body">You are building a great habit. Keep logging every day.</string>
+    <string name="keypad_backspace">Delete last digit</string>
+    <string name="saved_confirmation">Saved ✓</string>
+    <string name="streak_grew">🔥 %d-day streak!</string>
 </resources>

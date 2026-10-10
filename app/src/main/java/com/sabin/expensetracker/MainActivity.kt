@@ -120,6 +120,10 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
     var filter by remember { mutableStateOf<String?>(null) }
     var query by remember { mutableStateOf("") }
     var showForm by remember { mutableStateOf(startWithForm) }
+    val view = androidx.compose.ui.platform.LocalView.current
+    var confirmToken by remember { mutableIntStateOf(0) }
+    var confirmMessage by remember { mutableStateOf<String?>(null) }
+    var milestone by remember { mutableStateOf<Int?>(null) }
     var editingId by remember { mutableStateOf<Long?>(null) }
     var backupMessage by remember { mutableStateOf<String?>(null) }
     var backedUp by remember { mutableStateOf(prefs.getBoolean("backed_up", false)) }
@@ -153,6 +157,7 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
         }
     }
     if (celebrate.isNotEmpty()) UnlockCelebration(celebrate) { celebrate = emptySet() }
+    milestone?.let { StreakMilestoneSheet(it) { milestone = null } }
     if (showShelf) BadgeShelf(unlocked) { showShelf = false }
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json")
@@ -233,6 +238,7 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
                 .onFailure { error = it.message }
             return
         }
+        val streakBefore = loggingStreak(book.expenses, java.time.LocalDate.now()).current
         runCatching {
             val value = amount.toDoubleOrNull() ?: 0.0
             val e = book.add(title, value, category, stamp, note)
@@ -243,7 +249,15 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
                 recurring.applyDue(ExpenseBook(), java.time.LocalDate.now())
             }
         }
-            .onSuccess { title = ""; amount = ""; note = ""; monthly = false; error = null; showForm = false; save(); version++ }
+            .onSuccess {
+                title = ""; amount = ""; note = ""; monthly = false; error = null; showForm = false; save(); version++
+                val streakAfter = loggingStreak(book.expenses, java.time.LocalDate.now()).current
+                confirmHaptic(view)
+                confirmMessage = if (streakGrew(streakBefore, streakAfter)) resources.getString(R.string.streak_grew, streakAfter)
+                else resources.getString(R.string.saved_confirmation)
+                confirmToken++
+                milestone = streakMilestoneReached(streakBefore, streakAfter)
+            }
             .onFailure { error = it.message }
     }
     categoryToRemove?.let { c ->
@@ -271,14 +285,22 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
             Column(Modifier.padding(horizontal = 16.dp).verticalScroll(rememberScrollState())) {
                 val titleFocus = remember { FocusRequester() }
                 val amountFocus = remember { FocusRequester() }
-                // First-run: open straight onto the amount keypad.
-                LaunchedEffect(Unit) { (if (startWithForm && book.expenses.isEmpty()) amountFocus else titleFocus).requestFocus() }
-                OutlinedTextField(title, { title = it }, label = { Text(stringResource(R.string.title)) }, modifier = Modifier.fillMaxWidth().focusRequester(titleFocus))
+                // Fast add: new expenses open onto the amount with the number pad.
+                LaunchedEffect(Unit) { (if (editingId == null) amountFocus else titleFocus).requestFocus() }
+                val padMode = editingId == null
+                if (!padMode) {
+                    OutlinedTextField(title, { title = it }, label = { Text(stringResource(R.string.title)) }, modifier = Modifier.fillMaxWidth().focusRequester(titleFocus))
+                }
                 OutlinedTextField(
                     amount, { amount = filterDecimalInput(amount, it) }, label = { Text(stringResource(R.string.amount)) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    readOnly = padMode,
                     modifier = Modifier.fillMaxWidth().focusRequester(amountFocus)
                 )
+                if (padMode) {
+                    NumberPad({ k -> amount = keypadPress(amount, k) }, Modifier.padding(vertical = 8.dp))
+                    OutlinedTextField(title, { title = it }, label = { Text(stringResource(R.string.title)) }, modifier = Modifier.fillMaxWidth())
+                }
                 OutlinedTextField(
                     note, { note = filterNoteInput(note, it) }, label = { Text(stringResource(R.string.note)) },
                     singleLine = true, modifier = Modifier.fillMaxWidth()
@@ -378,7 +400,15 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        snackbarHost = { SnackbarHost(snackbarHost) },
+        snackbarHost = {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                confirmMessage?.let { m ->
+                    SaveConfirmation(confirmToken, m)
+                    LaunchedEffect(confirmToken) { kotlinx.coroutines.delay(1800); confirmMessage = null }
+                }
+                SnackbarHost(snackbarHost)
+            }
+        },
         topBar = { LargeTopAppBar(title = { Text(stringResource(R.string.app_name)) }, scrollBehavior = scrollBehavior) },
         floatingActionButton = {
             ExtendedFloatingActionButton(

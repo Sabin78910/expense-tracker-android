@@ -95,4 +95,9 @@
     <string name="hide_content_hint">हालका एप पूर्वावलोकन खाली गर्छ र स्क्रिनसट रोक्छ।</string>
     <string name="state_on">खुला</string>
     <string name="state_off">बन्द</string>
+    <string name="streak_milestone_title">%d दिनको स्ट्रिक!</string>
+    <string name="streak_milestone_body">तपाईं राम्रो बानी बसाल्दै हुनुहुन्छ। हरेक दिन लेख्न जारी राख्नुहोस्।</string>
+    <string name="keypad_backspace">अन्तिम अङ्क मेट्नुहोस्</string>
+    <string name="saved_confirmation">सुरक्षित ✓</string>
+    <string name="streak_grew">🔥 %d दिनको स्ट्रिक!</string>
 </resources>
