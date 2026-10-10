@@ -62,7 +62,7 @@ class MainActivity : ComponentActivity() {
                 if (onboarding) {
                     OnboardingScreen(firstRun) { open -> openForm = open; onboarding = false }
                 } else {
-                    ExpenseScreen(startWithForm = openForm || fromWidgetAdd)
+                    ExpenseScreen(startWithForm = shouldOpenForm(fromWidgetAdd, openForm))
                 }
             }
         }

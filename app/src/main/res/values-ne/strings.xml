@@ -1,6 +1,8 @@
 <resources>
     <string name="app_name">खर्च ट्र्याकर</string>
     <string name="widget_description">यो महिनाको खर्च र बजेट</string>
+    <string name="shortcut_add_short">खर्च थप्नुहोस्</string>
+    <string name="shortcut_add_long">नयाँ खर्च थप्नुहोस्</string>
     <string name="reminder_channel">दैनिक सम्झना</string>
     <string name="reminder_text">लगातारता कायम राख्न आजको खर्च लेख्नुहोस्।</string>
     <string name="title">शीर्षक</string>
