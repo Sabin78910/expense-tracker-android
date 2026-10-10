@@ -39,8 +39,6 @@ import java.time.Instant
 import kotlinx.coroutines.launch
 import java.time.ZoneId
 
-val CATEGORIES = listOf("Food", "Transport", "Bills", "Shopping", "Other")
-
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -103,11 +101,15 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
     var budget by remember { mutableDoubleStateOf(Double.fromBits(prefs.getLong("budget", 0L))) }
     var budgetText by remember { mutableStateOf(if (budget > 0) budget.toString() else "") }
     var limits by remember { mutableStateOf(CategoryLimits.deserialize(prefs.getString("category_limits", "") ?: "")) }
+    var categories by remember { mutableStateOf(CategoryList.deserialize(prefs.getString("custom_categories", "") ?: "")) }
+    var newCategory by remember { mutableStateOf("") }
+    var categoryToRemove by remember { mutableStateOf<String?>(null) }
+    fun saveCategories() { prefs.edit().putString("custom_categories", categories.serialize()).apply() }
     var version by remember { mutableIntStateOf(0) }
     var title by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
     var note by remember { mutableStateOf("") }
-    var category by remember { mutableStateOf(CATEGORIES.first()) }
+    var category by remember { mutableStateOf(CategoryList.DEFAULTS.first()) }
     var monthly by remember { mutableStateOf(false) }
     var date by remember { mutableStateOf(java.time.LocalDate.now()) }
     var timeOfDay by remember { mutableStateOf<java.time.LocalTime?>(null) }
@@ -156,7 +158,7 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
         if (uri != null) {
             backupMessage = runCatching {
                 context.contentResolver.openOutputStream(uri, "wt")!!.use {
-                    it.write(Backup.exportFull(book.expenses, limits).toByteArray(Charsets.UTF_8))
+                    it.write(Backup.exportFull(book.expenses, limits, categories).toByteArray(Charsets.UTF_8))
                 }
                 prefs.edit().putBoolean("backed_up", true).apply()
                 backedUp = true
@@ -185,6 +187,8 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
                     it.readBytes().toString(Charsets.UTF_8)
                 }
                 val data = Backup.parseFull(text)
+                categories = categories.withAll(data.categories + data.expenses.map { it.category })
+                saveCategories()
                 val added = book.merge(data.expenses)
                 if (!data.limits.isEmpty()) {
                     limits = data.limits
@@ -240,6 +244,26 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
             .onSuccess { title = ""; amount = ""; note = ""; monthly = false; error = null; showForm = false; save(); version++ }
             .onFailure { error = it.message }
     }
+    categoryToRemove?.let { c ->
+        AlertDialog(
+            onDismissRequest = { categoryToRemove = null },
+            title = { Text(stringResource(R.string.remove_category, c)) },
+            text = { Text(stringResource(R.string.remove_category_message, c)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    book.reassignCategory(c, CategoryList.OTHER)
+                    categories = categories.remove(c); saveCategories()
+                    limits = limits.with(c, 0.0)
+                    prefs.edit().putString("category_limits", limits.serialize()).apply()
+                    if (category == c) category = CategoryList.OTHER
+                    if (filter == c) filter = null
+                    categoryToRemove = null
+                    save(); version++
+                }) { Text(stringResource(R.string.delete)) }
+            },
+            dismissButton = { TextButton(onClick = { categoryToRemove = null }) { Text(stringResource(R.string.cancel)) } }
+        )
+    }
     if (showForm) {
         ModalBottomSheet(onDismissRequest = { closeForm() }) {
             Column(Modifier.padding(horizontal = 16.dp).verticalScroll(rememberScrollState())) {
@@ -261,8 +285,37 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
                     Modifier.padding(vertical = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    CATEGORIES.forEach { c ->
+                    categories.all.forEach { c ->
                         FilterChip(selected = c == category, onClick = { category = c }, label = { Text(categoryLabel(c)) })
+                    }
+                }
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedTextField(
+                        newCategory, { newCategory = it.take(MAX_CATEGORY_LENGTH).replace("\n", "") },
+                        label = { Text(stringResource(R.string.new_category)) },
+                        singleLine = true, modifier = Modifier.weight(1f)
+                    )
+                    val addLabel = stringResource(R.string.add_category)
+                    TextButton(
+                        onClick = {
+                            categories.add(newCategory)?.let { updated ->
+                                categories = updated; saveCategories()
+                                category = newCategory.trim(); newCategory = ""
+                            }
+                        },
+                        enabled = categories.add(newCategory) != null,
+                        modifier = Modifier.semantics { contentDescription = addLabel }
+                    ) { Text(addLabel) }
+                }
+                if (categories.custom.isNotEmpty()) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        categories.custom.forEach { c ->
+                            val removeLabel = stringResource(R.string.remove_category, c)
+                            TextButton(
+                                onClick = { categoryToRemove = c },
+                                modifier = Modifier.semantics { contentDescription = removeLabel }
+                            ) { Text("✕ $c") }
+                        }
                     }
                 }
                 val dateText = date.format(java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM))
@@ -381,7 +434,7 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
                     }
                 }
                 val monthTotals = monthCategoryTotals(book.expenses, month.year, month.monthValue).toMap()
-                CATEGORIES.forEach { c ->
+                categories.all.forEach { c ->
                     CategoryBudgetRow(
                         c, monthTotals[c] ?: 0.0, limits.limitFor(c),
                         onLimit = { v ->
@@ -418,7 +471,7 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     FilterChip(selected = filter == null, onClick = { filter = null }, label = { Text(stringResource(R.string.all)) })
-                    CATEGORIES.forEach { c ->
+                    categories.all.forEach { c ->
                         FilterChip(selected = c == filter, onClick = { filter = c }, label = { Text(categoryLabel(c)) })
                     }
                 }

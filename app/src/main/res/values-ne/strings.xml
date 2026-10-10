@@ -79,4 +79,8 @@
     <string name="category_limit">%1$s मासिक सीमा (NPR)</string>
     <string name="category_left">%1$s बाँकी</string>
     <string name="category_over">%1$s बढी</string>
+    <string name="new_category">नयाँ वर्ग</string>
+    <string name="add_category">वर्ग थप्नुहोस्</string>
+    <string name="remove_category">वर्ग %1$s हटाउनुहोस्</string>
+    <string name="remove_category_message">%1$s का खर्चहरू अन्यमा सारिनेछन्।</string>
 </resources>

@@ -5,15 +5,14 @@ import androidx.compose.ui.res.stringResource
 
 /** Display name for a stored category key (the key itself stays English in saved data). */
 @Composable
-fun categoryLabel(category: String): String = stringResource(
-    when (category) {
-        "Food" -> R.string.cat_food
-        "Transport" -> R.string.cat_transport
-        "Bills" -> R.string.cat_bills
-        "Shopping" -> R.string.cat_shopping
-        else -> R.string.cat_other
-    }
-)
+fun categoryLabel(category: String): String = when (category) {
+    "Food" -> stringResource(R.string.cat_food)
+    "Transport" -> stringResource(R.string.cat_transport)
+    "Bills" -> stringResource(R.string.cat_bills)
+    "Shopping" -> stringResource(R.string.cat_shopping)
+    "Other" -> stringResource(R.string.cat_other)
+    else -> category
+}
 
 @Composable
 fun badgeTitle(b: Badge): String = stringResource(

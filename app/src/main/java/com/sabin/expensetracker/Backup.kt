@@ -2,7 +2,7 @@ package com.sabin.expensetracker
 
 class BackupException(message: String) : Exception(message)
 
-data class BackupData(val expenses: List<Expense>, val limits: CategoryLimits)
+data class BackupData(val expenses: List<Expense>, val limits: CategoryLimits, val categories: List<String> = emptyList())
 
 /** JSON backup of expenses (no Android dependencies, so it is unit-testable). */
 object Backup {
@@ -11,8 +11,15 @@ object Backup {
     fun export(expenses: List<Expense>): String = exportFull(expenses, CategoryLimits.EMPTY)
 
     /** Like [export] but also stores category limits (omitted when there are none). */
-    fun exportFull(expenses: List<Expense>, limits: CategoryLimits): String = buildString {
+    fun exportFull(
+        expenses: List<Expense>,
+        limits: CategoryLimits,
+        categories: CategoryList = CategoryList.EMPTY
+    ): String = buildString {
         append("{\"version\":").append(VERSION)
+        if (categories.custom.isNotEmpty()) {
+            append(",\"customCategories\":[").append(categories.custom.joinToString(",") { quote(it) }).append(']')
+        }
         if (!limits.isEmpty()) {
             append(",\"categoryLimits\":{")
             limits.entries().entries.forEachIndexed { i, (k, v) ->
@@ -48,6 +55,7 @@ object Backup {
                 val d = v as? Double
                 if (k is String && d != null) acc.with(k, d) else acc
             } ?: CategoryLimits.EMPTY
+            val categories = (root["customCategories"] as? List<*>)?.filterIsInstance<String>() ?: emptyList()
             val expenses = list.map { item ->
                 val m = item as? Map<*, *> ?: bad("Invalid expense")
                 val amount = m["amount"] as? Double ?: bad("Invalid amount")
@@ -62,7 +70,7 @@ object Backup {
                     (m["note"] as? String ?: "").trim().take(MAX_NOTE_LENGTH)
                 )
             }
-            return BackupData(expenses, limits)
+            return BackupData(expenses, limits, categories)
         } catch (e: BackupException) {
             throw e
         } catch (e: RuntimeException) {
