@@ -26,4 +26,31 @@ class ThemeTest {
     @Test fun moneyStyleIsBoldDisplay() {
         assertEquals(FontWeight.Bold, expenseTypography().displayMedium.fontWeight)
     }
+
+    @Test fun darkSurfaceIsDeepForest() {
+        assertEquals(Color(0xFF07130E), fallbackColorScheme(dark = true).background)
+        assertEquals(BRAND_TEAL, fallbackColorScheme(dark = true).tertiary)
+    }
+
+    @Test fun moneyUsesTabularNumbers() {
+        assertEquals("tnum", moneyTextStyle().fontFeatureSettings)
+        assertEquals(FontWeight.ExtraBold, moneyTextStyle().fontWeight)
+    }
+
+    @Test fun typeScaleHasExpressiveDisplayAndTabularLabels() {
+        val t = expenseTypography()
+        assertEquals(FontWeight.Bold, t.displayLarge.fontWeight)
+        assertEquals("tnum", t.displayLarge.fontFeatureSettings)
+        assertEquals(FontWeight.SemiBold, t.titleLarge.fontWeight)
+    }
+
+    @Test fun reducedMotionWhenAnimatorScaleIsZero() {
+        assertEquals(true, isReducedMotion(0f))
+        assertEquals(false, isReducedMotion(1f))
+    }
+
+    @Test fun tonalElevationStepsUp() {
+        assertEquals(0f, tonalElevationDp(0))
+        assertEquals(true, tonalElevationDp(2) > tonalElevationDp(1))
+    }
 }
