@@ -107,6 +107,9 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
     var amount by remember { mutableStateOf("") }
     var category by remember { mutableStateOf(CATEGORIES.first()) }
     var monthly by remember { mutableStateOf(false) }
+    var date by remember { mutableStateOf(java.time.LocalDate.now()) }
+    var timeOfDay by remember { mutableStateOf<java.time.LocalTime?>(null) }
+    var showDatePicker by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var filter by remember { mutableStateOf<String?>(null) }
     var query by remember { mutableStateOf("") }
@@ -191,22 +194,29 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
     }
     val expenses = remember(version, filter, query) { book.search(query, filter) }
 
-    fun closeForm() { title = ""; amount = ""; monthly = false; error = null; showForm = false; editingId = null }
+    fun closeForm() { title = ""; amount = ""; monthly = false; error = null; showForm = false; editingId = null
+        date = java.time.LocalDate.now(); timeOfDay = null }
     fun startEdit(e: Expense) {
         title = e.title; amount = e.amount.toString(); category = e.category
+        val zone = ZoneId.systemDefault()
+        date = if (e.timestamp > 0) Instant.ofEpochMilli(e.timestamp).atZone(zone).toLocalDate() else java.time.LocalDate.now()
+        timeOfDay = if (e.timestamp > 0) ExpenseDate.timeOfDay(e.timestamp, zone) else null
         monthly = false; error = null; editingId = e.id; showForm = true
     }
     fun addExpense() {
         val editing = editingId
+        val stamp = runCatching {
+            ExpenseDate.timestampFor(date, timeOfDay ?: java.time.LocalTime.now())
+        }.getOrElse { error = it.message; return }
         if (editing != null) {
-            runCatching { book.update(editing, title, amount.toDoubleOrNull() ?: 0.0, category) }
+            runCatching { book.update(editing, title, amount.toDoubleOrNull() ?: 0.0, category, stamp) }
                 .onSuccess { closeForm(); save(); version++ }
                 .onFailure { error = it.message }
             return
         }
         runCatching {
             val value = amount.toDoubleOrNull() ?: 0.0
-            val e = book.add(title, value, category)
+            val e = book.add(title, value, category, stamp)
             if (monthly) {
                 val day = Instant.ofEpochMilli(e.timestamp).atZone(ZoneId.systemDefault()).dayOfMonth
                 recurring.add(title, value, category, day)
@@ -238,6 +248,12 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
                         FilterChip(selected = c == category, onClick = { category = c }, label = { Text(categoryLabel(c)) })
                     }
                 }
+                val dateText = date.format(java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM))
+                val dateLabel = stringResource(R.string.expense_date_label, dateText)
+                OutlinedButton(
+                    onClick = { showDatePicker = true },
+                    modifier = Modifier.fillMaxWidth().semantics { contentDescription = dateLabel }
+                ) { Text(dateLabel) }
                 error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                 if (editingId == null) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -251,6 +267,26 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
                 Spacer(Modifier.height(24.dp))
             }
         }
+    }
+    if (showForm && showDatePicker) {
+        val today = java.time.LocalDate.now()
+        val pickerState = rememberDatePickerState(
+            initialSelectedDateMillis = ExpenseDate.toPickerMillis(date),
+            selectableDates = object : SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long) = ExpenseDate.isSelectable(utcTimeMillis, today)
+                override fun isSelectableYear(year: Int) = year <= today.year
+            }
+        )
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    pickerState.selectedDateMillis?.let { date = ExpenseDate.fromPickerMillis(it) }
+                    showDatePicker = false
+                }) { Text(stringResource(R.string.ok)) }
+            },
+            dismissButton = { TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.cancel)) } }
+        ) { DatePicker(pickerState) }
     }
     val snackbarHost = remember { SnackbarHostState() }
     val deletedMsg = stringResource(R.string.expense_deleted)

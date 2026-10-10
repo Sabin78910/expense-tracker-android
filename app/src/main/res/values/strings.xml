@@ -64,6 +64,9 @@
     <string name="expense_deleted">Expense deleted</string>
     <string name="undo">Undo</string>
     <string name="edit_expense">Edit expense</string>
+    <string name="expense_date_label">Date: %1$s</string>
+    <string name="ok">OK</string>
+    <string name="cancel">Cancel</string>
     <string name="save_changes">Save changes</string>
     <string name="edit_row_label">Edit %1$s</string>
     <string name="search_expenses">Search by title</string>

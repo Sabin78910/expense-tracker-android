@@ -185,3 +185,27 @@ class ExpenseBookTest {
         assertTrue(searchBook().search("pizza").isEmpty())
     }
 }
+
+class ExpenseBookDateTest {
+    private val zone = java.time.ZoneId.of("UTC")
+    private fun ts(y: Int, m: Int, d: Int) =
+        java.time.LocalDate.of(y, m, d).atTime(10, 0).atZone(zone).toInstant().toEpochMilli()
+
+    @Test fun updateWithoutTimestampKeepsDate() {
+        val book = ExpenseBook()
+        val e = book.add("Tea", 30.0, "Food", ts(2026, 10, 1))
+        book.update(e.id, "Tea", 40.0, "Food")
+        assertEquals(ts(2026, 10, 1), book.expenses.single().timestamp)
+    }
+
+    @Test fun updateTimestampMovesMonthTotalAndChart() {
+        val book = ExpenseBook()
+        val e = book.add("Tea", 30.0, "Food", ts(2026, 10, 9))
+        book.update(e.id, "Tea", 30.0, "Food", ts(2026, 9, 20))
+        assertEquals(ts(2026, 9, 20), book.expenses.single().timestamp)
+        assertEquals(0.0, book.totalForMonth(2026, 10, zone), 0.001)
+        assertEquals(30.0, book.totalForMonth(2026, 9, zone), 0.001)
+        val week = dailyTotals(book.expenses, java.time.LocalDate.of(2026, 9, 22), zone)
+        assertEquals(30.0, week.first { it.date == java.time.LocalDate.of(2026, 9, 20) }.total, 0.001)
+    }
+}
