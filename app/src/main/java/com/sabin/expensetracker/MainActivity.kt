@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color as ComposeColor
 import androidx.compose.ui.Modifier
@@ -151,8 +152,8 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
                 }
                 prefs.edit().putBoolean("backed_up", true).apply()
                 backedUp = true
-                "Backup saved"
-            }.getOrElse { "Could not save backup" }
+                context.getString(R.string.backup_saved)
+            }.getOrElse { context.getString(R.string.backup_save_failed) }
         }
     }
     val importLauncher = rememberLauncherForActivityResult(
@@ -165,11 +166,11 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
                 }
                 val added = book.merge(Backup.parse(text))
                 save(); version++
-                "Restored $added new expenses"
+                context.getString(R.string.restored_count, added)
             } catch (e: BackupException) {
-                "Invalid backup file: " + e.message
+                context.getString(R.string.backup_invalid, e.message ?: "")
             } catch (e: java.io.IOException) {
-                "Could not read backup"
+                context.getString(R.string.backup_read_failed)
             }
         }
     }
@@ -196,9 +197,9 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
                 val amountFocus = remember { FocusRequester() }
                 // First-run: open straight onto the amount keypad.
                 LaunchedEffect(Unit) { (if (startWithForm && book.expenses.isEmpty()) amountFocus else titleFocus).requestFocus() }
-                OutlinedTextField(title, { title = it }, label = { Text("Title") }, modifier = Modifier.fillMaxWidth().focusRequester(titleFocus))
+                OutlinedTextField(title, { title = it }, label = { Text(stringResource(R.string.title)) }, modifier = Modifier.fillMaxWidth().focusRequester(titleFocus))
                 OutlinedTextField(
-                    amount, { amount = filterDecimalInput(amount, it) }, label = { Text("Amount") },
+                    amount, { amount = filterDecimalInput(amount, it) }, label = { Text(stringResource(R.string.amount)) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth().focusRequester(amountFocus)
                 )
@@ -207,15 +208,15 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     CATEGORIES.forEach { c ->
-                        FilterChip(selected = c == category, onClick = { category = c }, label = { Text(c) })
+                        FilterChip(selected = c == category, onClick = { category = c }, label = { Text(categoryLabel(c)) })
                     }
                 }
                 error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(monthly, { monthly = it })
-                    Text("Repeat monthly")
+                    Text(stringResource(R.string.repeat_monthly))
                 }
-                Button(onClick = { addExpense() }, modifier = Modifier.fillMaxWidth()) { Text("Add expense") }
+                Button(onClick = { addExpense() }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.add_expense)) }
                 Spacer(Modifier.height(24.dp))
             }
         }
@@ -224,12 +225,12 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        topBar = { LargeTopAppBar(title = { Text("Expense Tracker") }, scrollBehavior = scrollBehavior) },
+        topBar = { LargeTopAppBar(title = { Text(stringResource(R.string.app_name)) }, scrollBehavior = scrollBehavior) },
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = { showForm = true },
                 icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                text = { Text("Add expense") }
+                text = { Text(stringResource(R.string.add_expense)) }
             )
         }
     ) { padding ->
@@ -248,7 +249,7 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("All time", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.all_time), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(formatNpr(book.total()), style = MaterialTheme.typography.titleMedium)
                 }
                 status.message?.let { Text(it) }
@@ -260,7 +261,7 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
                         prefs.edit().putLong("budget", budget.toRawBits()).apply()
                         scope.launch { ExpenseWidget.refresh(context) }
                     },
-                    label = { Text("Monthly budget (NPR)") },
+                    label = { Text(stringResource(R.string.monthly_budget)) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -270,18 +271,18 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
                 Spacer(Modifier.height(12.dp))
                 book.sortedCategoryTotals().forEach { (c, t) ->
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(c)
+                        Text(categoryLabel(c))
                         Text(formatNpr(t))
                     }
                 }
                 val chips = remember(version) { recentChips(book.expenses) }
                 if (chips.isNotEmpty()) {
-                    Text("Recent", style = MaterialTheme.typography.labelLarge)
+                    Text(stringResource(R.string.recent), style = MaterialTheme.typography.labelLarge)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         chips.forEach { c ->
                             AssistChip(
                                 onClick = { book.add(c.category, c.amount, c.category); save(); version++ },
-                                label = { Text(c.category + " " + formatNpr(c.amount)) }
+                                label = { Text(categoryLabel(c.category) + " " + formatNpr(c.amount)) }
                             )
                         }
                     }
@@ -290,19 +291,19 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
                 ReminderSettings()
                 Spacer(Modifier.height(12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { exportLauncher.launch("expenses-backup.json") }) { Text("Back up") }
+                    OutlinedButton(onClick = { exportLauncher.launch("expenses-backup.json") }) { Text(stringResource(R.string.back_up)) }
                     OutlinedButton(onClick = { importLauncher.launch(arrayOf("application/json", "text/*", "application/octet-stream")) }) { Text("Restore") }
                 }
                 backupMessage?.let { Text(it) }
-                OutlinedButton(onClick = { showShelf = true }) { Text("Badges (${unlocked.size}/${Badge.values().size})") }
+                OutlinedButton(onClick = { showShelf = true }) { Text(stringResource(R.string.badges_count, unlocked.size, Badge.values().size)) }
                 Spacer(Modifier.height(12.dp))
                 FlowRow(
                     Modifier.padding(bottom = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    FilterChip(selected = filter == null, onClick = { filter = null }, label = { Text("All") })
+                    FilterChip(selected = filter == null, onClick = { filter = null }, label = { Text(stringResource(R.string.all)) })
                     CATEGORIES.forEach { c ->
-                        FilterChip(selected = c == filter, onClick = { filter = c }, label = { Text(c) })
+                        FilterChip(selected = c == filter, onClick = { filter = c }, label = { Text(categoryLabel(c)) })
                     }
                 }
             }
@@ -317,7 +318,7 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
                     ListItem(
                         leadingContent = { CategoryBadge(e.category) },
                         headlineContent = { Text(e.title) },
-                        supportingContent = { Text(e.category) },
+                        supportingContent = { Text(categoryLabel(e.category)) },
                         trailingContent = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(formatNpr(e.amount))
@@ -326,7 +327,7 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
                                     modifier = Modifier
                                         .minimumInteractiveComponentSize()
                                         .semantics { contentDescription = deleteLabel(e.title) }
-                                ) { Text("Delete") }
+                                ) { Text(stringResource(R.string.delete)) }
                             }
                         }
                     )
@@ -347,7 +348,7 @@ fun ReminderSettings() {
         ReminderScheduler.setEnabled(context, granted)
     }
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-        Text("Remind me to log expenses")
+        Text(stringResource(R.string.remind_me))
         Switch(checked = on, onCheckedChange = { want ->
             when {
                 !want -> { on = false; ReminderScheduler.setEnabled(context, false) }
@@ -362,20 +363,20 @@ fun ReminderSettings() {
                 time = java.time.LocalTime.of(h, m)
                 ReminderScheduler.setTime(context, time)
             }, time.hour, time.minute, true).show()
-        }) { Text("Reminder time: %02d:%02d".format(time.hour, time.minute)) }
+        }) { Text(stringResource(R.string.reminder_time, "%02d:%02d".format(time.hour, time.minute))) }
     }
     if (explain) {
         AlertDialog(
             onDismissRequest = { explain = false },
-            title = { Text("Allow notifications?") },
-            text = { Text("We need notification permission to send one gentle reminder a day, only on days you haven't logged an expense. You can turn it off any time.") },
+            title = { Text(stringResource(R.string.allow_notifications)) },
+            text = { Text(stringResource(R.string.notification_rationale)) },
             confirmButton = {
                 TextButton(onClick = {
                     explain = false
                     permission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
-                }) { Text("Continue") }
+                }) { Text(stringResource(R.string.continue_label)) }
             },
-            dismissButton = { TextButton(onClick = { explain = false }) { Text("Not now") } }
+            dismissButton = { TextButton(onClick = { explain = false }) { Text(stringResource(R.string.not_now)) } }
         )
     }
 }
