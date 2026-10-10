@@ -158,4 +158,30 @@ class ExpenseBookTest {
         book.update(999L, "X", 1.0, "Other")
         assertEquals(listOf(e), book.expenses)
     }
+
+    private fun searchBook() = ExpenseBook().apply {
+        add("Momo", 250.0, "Food")
+        add("Bus ticket", 50.0, "Transport")
+        add("Momo dinner", 300.0, "Bills")
+    }
+
+    @Test fun searchMatchesTitleSubstring() {
+        assertEquals(listOf("Momo dinner", "Momo"), searchBook().search("mom").map { it.title })
+    }
+
+    @Test fun searchIgnoresCaseAndTrims() {
+        assertEquals(1, searchBook().search("  BUS ").size)
+    }
+
+    @Test fun blankQueryReturnsAll() {
+        assertEquals(3, searchBook().search("   ").size)
+    }
+
+    @Test fun searchCombinesWithCategory() {
+        assertEquals(listOf("Momo"), searchBook().search("momo", "Food").map { it.title })
+    }
+
+    @Test fun searchWithNoMatchesIsEmpty() {
+        assertTrue(searchBook().search("pizza").isEmpty())
+    }
 }

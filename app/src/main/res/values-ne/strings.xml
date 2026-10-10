@@ -66,4 +66,7 @@
     <string name="edit_expense">खर्च सम्पादन गर्नुहोस्</string>
     <string name="save_changes">परिवर्तन सुरक्षित गर्नुहोस्</string>
     <string name="edit_row_label">%1$s सम्पादन गर्नुहोस्</string>
+    <string name="search_expenses">शीर्षकबाट खोज्नुहोस्</string>
+    <string name="clear_search">खोज खाली गर्नुहोस्</string>
+    <string name="no_results">मिल्ने कुनै खर्च छैन</string>
 </resources>
