@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -30,7 +31,7 @@ fun CategoryDonut(shares: List<CategoryShare>) {
     Column(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {
         contentDescription = donutDescription(shares)
     }) {
-        Text("This month by category", style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(R.string.chart_by_category), style = MaterialTheme.typography.titleMedium)
         Canvas(Modifier.size(160.dp).align(Alignment.CenterHorizontally).padding(8.dp)) {
             val stroke = 28.dp.toPx()
             val inset = stroke / 2
@@ -62,7 +63,7 @@ fun WeekBars(days: List<DayTotal>) {
     Column(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {
         contentDescription = barsDescription(days)
     }) {
-        Text("Last 7 days", style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(R.string.chart_last_7_days), style = MaterialTheme.typography.titleMedium)
         Canvas(Modifier.fillMaxWidth().height(100.dp).padding(vertical = 4.dp)) {
             val slot = size.width / days.size
             days.forEachIndexed { i, d ->

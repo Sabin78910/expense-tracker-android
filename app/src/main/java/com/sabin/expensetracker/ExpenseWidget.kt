@@ -68,7 +68,7 @@ private fun WidgetContent(state: WidgetState, context: Context) {
         GlanceModifier.fillMaxSize().background(GlanceTheme.colors.widgetBackground).padding(12.dp)
             .clickable(open)
     ) {
-        Text("This month", style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 12.sp))
+        Text(context.getString(R.string.this_month), style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 12.sp))
         Text(
             state.totalLabel,
             style = TextStyle(color = GlanceTheme.colors.onSurface, fontSize = 22.sp, fontWeight = FontWeight.Bold)

@@ -8,6 +8,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -25,7 +26,7 @@ fun animationsOff(context: Context): Boolean =
 fun BadgeShelf(unlocked: Set<Badge>, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Badges (${unlocked.size}/${Badge.values().size})") },
+        title = { Text(stringResource(R.string.badges_count, unlocked.size, Badge.values().size)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Badge.values().forEach { b ->
@@ -33,9 +34,9 @@ fun BadgeShelf(unlocked: Set<Badge>, onDismiss: () -> Unit) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Text(if (on) "🏅" else "🔒")
                         Column {
-                            Text(b.title, style = MaterialTheme.typography.titleSmall)
+                            Text(badgeTitle(b), style = MaterialTheme.typography.titleSmall)
                             Text(
-                                (if (on) "Unlocked: " else "Locked: ") + b.description,
+                                stringResource(if (on) R.string.unlocked_desc else R.string.locked_desc, badgeDescription(b)),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -44,7 +45,7 @@ fun BadgeShelf(unlocked: Set<Badge>, onDismiss: () -> Unit) {
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } }
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.close)) } }
     )
 }
 
@@ -57,10 +58,10 @@ fun UnlockCelebration(badges: Set<Badge>, onDismiss: () -> Unit) {
     LaunchedEffect(Unit) { if (animate) t.animateTo(1f, tween(1500)) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Badge unlocked! 🎉") },
+        title = { Text(stringResource(R.string.badge_unlocked)) },
         text = {
             Box {
-                Column { badges.forEach { Text("🏅 ${it.title}: ${it.description}") } }
+                Column { badges.forEach { Text("🏅 ${badgeTitle(it)}: ${badgeDescription(it)}") } }
                 if (animate && t.value < 1f) {
                     val colors = listOf(Color(0xFFE53935), Color(0xFFFFB300), Color(0xFF43A047), Color(0xFF1E88E5))
                     Canvas(Modifier.matchParentSize()) {
@@ -77,6 +78,6 @@ fun UnlockCelebration(badges: Set<Badge>, onDismiss: () -> Unit) {
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Nice!") } }
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.nice)) } }
     )
 }

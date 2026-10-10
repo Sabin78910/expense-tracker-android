@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -32,7 +33,7 @@ fun HeroCard(monthSpent: Double, status: BudgetStatus, streak: Streak, modifier:
             .padding(20.dp)
     ) {
         Column {
-            Text("This month", style = MaterialTheme.typography.labelLarge, color = scheme.onPrimary)
+            Text(stringResource(R.string.this_month), style = MaterialTheme.typography.labelLarge, color = scheme.onPrimary)
             Text(formatNpr(shown), style = MaterialTheme.typography.displayMedium, color = scheme.onPrimary)
             if (status.band != BudgetBand.NONE) {
                 Spacer(Modifier.height(8.dp))
@@ -75,8 +76,8 @@ fun EmptyState(onAdd: () -> Unit, modifier: Modifier = Modifier) {
             drawCircle(c.onPrimary, radius = size.width * 0.08f, center = Offset(size.width * 0.5f, size.height * 0.5f))
         }
         Spacer(Modifier.height(12.dp))
-        Text("No expenses yet", style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+        Text(stringResource(R.string.no_expenses), style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
         Spacer(Modifier.height(8.dp))
-        Button(onClick = onAdd) { Text("Add your first expense") }
+        Button(onClick = onAdd) { Text(stringResource(R.string.add_first_expense)) }
     }
 }
