@@ -75,4 +75,7 @@
     <string name="previous_month">Previous month</string>
     <string name="next_month">Next month</string>
     <string name="no_expenses_in_month">No expenses in %1$s. Nothing to worry about!</string>
+    <string name="category_limit">%1$s monthly limit (NPR)</string>
+    <string name="category_left">%1$s left</string>
+    <string name="category_over">%1$s over</string>
 </resources>

@@ -102,6 +102,7 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
     }
     var budget by remember { mutableDoubleStateOf(Double.fromBits(prefs.getLong("budget", 0L))) }
     var budgetText by remember { mutableStateOf(if (budget > 0) budget.toString() else "") }
+    var limits by remember { mutableStateOf(CategoryLimits.deserialize(prefs.getString("category_limits", "") ?: "")) }
     var version by remember { mutableIntStateOf(0) }
     var title by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
@@ -154,7 +155,7 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
         if (uri != null) {
             backupMessage = runCatching {
                 context.contentResolver.openOutputStream(uri, "wt")!!.use {
-                    it.write(Backup.export(book.expenses).toByteArray(Charsets.UTF_8))
+                    it.write(Backup.exportFull(book.expenses, limits).toByteArray(Charsets.UTF_8))
                 }
                 prefs.edit().putBoolean("backed_up", true).apply()
                 backedUp = true
@@ -182,7 +183,12 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
                 val text = context.contentResolver.openInputStream(uri)!!.use {
                     it.readBytes().toString(Charsets.UTF_8)
                 }
-                val added = book.merge(Backup.parse(text))
+                val data = Backup.parseFull(text)
+                val added = book.merge(data.expenses)
+                if (!data.limits.isEmpty()) {
+                    limits = data.limits
+                    prefs.edit().putString("category_limits", limits.serialize()).apply()
+                }
                 save(); version++
                 resources.getString(R.string.restored_count, added)
             } catch (e: BackupException) {
@@ -368,6 +374,16 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
                         Text(categoryLabel(c))
                         Text(formatNpr(t))
                     }
+                }
+                val monthTotals = monthCategoryTotals(book.expenses, month.year, month.monthValue).toMap()
+                CATEGORIES.forEach { c ->
+                    CategoryBudgetRow(
+                        c, monthTotals[c] ?: 0.0, limits.limitFor(c),
+                        onLimit = { v ->
+                            limits = limits.with(c, v)
+                            prefs.edit().putString("category_limits", limits.serialize()).apply()
+                        }
+                    )
                 }
                 val chips = remember(version) { recentChips(book.expenses) }
                 if (chips.isNotEmpty()) {

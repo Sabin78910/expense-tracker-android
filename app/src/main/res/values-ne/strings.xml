@@ -75,4 +75,7 @@
     <string name="previous_month">अघिल्लो महिना</string>
     <string name="next_month">अर्को महिना</string>
     <string name="no_expenses_in_month">%1$s मा कुनै खर्च छैन। चिन्ता नलिनुहोस्!</string>
+    <string name="category_limit">%1$s मासिक सीमा (NPR)</string>
+    <string name="category_left">%1$s बाँकी</string>
+    <string name="category_over">%1$s बढी</string>
 </resources>
