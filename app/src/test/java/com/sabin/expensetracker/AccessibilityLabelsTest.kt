@@ -13,4 +13,9 @@ class AccessibilityLabelsTest {
     fun expenseSummaryReadsTitleCategoryAndAmount() {
         assertEquals("Momo lunch, Food, NPR 150.00", expenseSummary("Momo lunch", "Food", 150.0))
     }
+
+    @Test
+    fun expenseSummaryIncludesNoteWhenPresent() {
+        assertEquals("Momo, Food, NPR 150.00, with Ram", expenseSummary("Momo", "Food", 150.0, "with Ram"))
+    }
 }

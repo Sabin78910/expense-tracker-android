@@ -4,6 +4,7 @@
     <string name="reminder_channel">Daily reminder</string>
     <string name="reminder_text">Log today\'s expenses to keep your streak going.</string>
     <string name="title">Title</string>
+    <string name="note">Note (optional)</string>
     <string name="amount">Amount</string>
     <string name="repeat_monthly">Repeat monthly</string>
     <string name="add_expense">Add expense</string>
@@ -69,7 +70,7 @@
     <string name="cancel">Cancel</string>
     <string name="save_changes">Save changes</string>
     <string name="edit_row_label">Edit %1$s</string>
-    <string name="search_expenses">Search by title</string>
+    <string name="search_expenses">Search by title or note</string>
     <string name="clear_search">Clear search</string>
     <string name="no_results">No matching expenses</string>
     <string name="previous_month">Previous month</string>

@@ -56,4 +56,14 @@ class BackupTest {
         book.merge(Backup.parse(Backup.export(sample)))
         assertEquals(sample.toSet(), book.expenses.map { it.copy(id = sample.first { s -> s.title == it.title }.id) }.toSet())
     }
+
+    @Test fun noteRoundTrips() {
+        val list = listOf(Expense(1, "Lunch", 5.0, "Food", 1L, "with \"Ram\", ok"))
+        assertEquals(list, Backup.parse(Backup.export(list)))
+    }
+
+    @Test fun legacyBackupWithoutNoteLoads() {
+        val json = "{\"version\":1,\"expenses\":[{\"id\":1,\"title\":\"a\",\"amount\":2,\"category\":\"c\",\"timestamp\":0}]}"
+        assertEquals("", Backup.parse(json)[0].note)
+    }
 }

@@ -9,8 +9,14 @@ data class Expense(
     val amount: Double,
     val category: String,
     /** Epoch millis; 0 for expenses saved before timestamps existed. */
-    val timestamp: Long = 0L
+    val timestamp: Long = 0L,
+    /** Optional short note; empty when none. */
+    val note: String = ""
 )
+
+const val MAX_NOTE_LENGTH = 100
+
+private fun cleanNote(note: String) = note.trim().take(MAX_NOTE_LENGTH)
 
 /** Pure, testable expense logic (no Android dependencies). */
 class ExpenseBook(initial: List<Expense> = emptyList()) {
@@ -23,24 +29,25 @@ class ExpenseBook(initial: List<Expense> = emptyList()) {
         title: String,
         amount: Double,
         category: String,
-        timestamp: Long = System.currentTimeMillis()
+        timestamp: Long = System.currentTimeMillis(),
+        note: String = ""
     ): Expense {
         require(title.isNotBlank()) { "Title is required" }
         require(amount > 0) { "Amount must be positive" }
-        return Expense(nextId++, title.trim(), amount, category, timestamp).also { items.add(0, it) }
+        return Expense(nextId++, title.trim(), amount, category, timestamp, cleanNote(note)).also { items.add(0, it) }
     }
 
     /**
      * Replaces title, amount and category of expense [id], keeping its id and position.
-     * The timestamp is kept unless [timestamp] is given.
+     * The timestamp is kept unless [timestamp] is given. [note] replaces the old note (blank clears it).
      * Validates like [add]; an unknown [id] is a no-op.
      */
-    fun update(id: Long, title: String, amount: Double, category: String, timestamp: Long? = null) {
+    fun update(id: Long, title: String, amount: Double, category: String, timestamp: Long? = null, note: String = "") {
         require(title.isNotBlank()) { "Title is required" }
         require(amount > 0) { "Amount must be positive" }
         val i = items.indexOfFirst { it.id == id }
         if (i >= 0) items[i] = items[i].copy(title = title.trim(), amount = amount, category = category,
-            timestamp = timestamp ?: items[i].timestamp)
+            timestamp = timestamp ?: items[i].timestamp, note = cleanNote(note))
     }
 
     /**
@@ -76,10 +83,12 @@ class ExpenseBook(initial: List<Expense> = emptyList()) {
     fun filterByCategory(category: String?): List<Expense> =
         if (category == null) expenses else items.filter { it.category == category }
 
-    /** Expenses whose title contains [query] (trimmed, case-insensitive), within [category] if given. */
+    /** Expenses whose title or note contains [query] (trimmed, case-insensitive), within [category] if given. */
     fun search(query: String, category: String? = null): List<Expense> {
         val q = query.trim()
-        return filterByCategory(category).filter { q.isEmpty() || it.title.contains(q, ignoreCase = true) }
+        return filterByCategory(category).filter {
+            q.isEmpty() || it.title.contains(q, ignoreCase = true) || it.note.contains(q, ignoreCase = true)
+        }
     }
 
     fun total(): Double = items.sumOf { it.amount }
@@ -98,9 +107,9 @@ class ExpenseBook(initial: List<Expense> = emptyList()) {
     fun sortedCategoryTotals(): List<Pair<String, Double>> =
         totalsByCategory().toList().sortedByDescending { it.second }
 
-    /** One expense per line, tab-separated: id, title, amount, category, timestamp (fields escaped). */
+    /** One expense per line, tab-separated: id, title, amount, category, timestamp, note (fields escaped). */
     fun serialize(): String = items.joinToString("\n") {
-        listOf(it.id.toString(), escape(it.title), it.amount.toString(), escape(it.category), it.timestamp.toString())
+        listOf(it.id.toString(), escape(it.title), it.amount.toString(), escape(it.category), it.timestamp.toString(), escape(it.note))
             .joinToString("\t")
     }
 
@@ -108,11 +117,11 @@ class ExpenseBook(initial: List<Expense> = emptyList()) {
         fun deserialize(data: String): ExpenseBook = ExpenseBook(
             data.lines().filter { it.isNotBlank() }.mapNotNull { line ->
                 val f = line.split("\t")
-                if (f.size != 4 && f.size != 5) return@mapNotNull null
+                if (f.size !in 4..6) return@mapNotNull null
                 val id = f[0].toLongOrNull() ?: return@mapNotNull null
                 val amount = f[2].toDoubleOrNull() ?: return@mapNotNull null
-                val ts = if (f.size == 5) f[4].toLongOrNull() ?: return@mapNotNull null else 0L
-                Expense(id, unescape(f[1]), amount, unescape(f[3]), ts)
+                val ts = if (f.size >= 5) f[4].toLongOrNull() ?: return@mapNotNull null else 0L
+                Expense(id, unescape(f[1]), amount, unescape(f[3]), ts, if (f.size == 6) unescape(f[5]) else "")
             }
         )
 

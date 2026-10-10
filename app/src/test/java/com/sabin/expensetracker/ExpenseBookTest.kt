@@ -186,6 +186,51 @@ class ExpenseBookTest {
     }
 }
 
+class ExpenseBookNoteTest {
+    @Test fun addStoresTrimmedNote() {
+        val book = ExpenseBook()
+        assertEquals("with Ram", book.add("Lunch", 5.0, "Food", 1L, "  with Ram ").note)
+    }
+
+    @Test fun blankNoteIsStoredEmpty() {
+        val book = ExpenseBook()
+        assertEquals("", book.add("Lunch", 5.0, "Food", 1L, "   ").note)
+        assertEquals("", book.add("Tea", 5.0, "Food").note)
+    }
+
+    @Test fun noteIsCappedAtMaxLength() {
+        val e = ExpenseBook().add("Lunch", 5.0, "Food", 1L, "x".repeat(150))
+        assertEquals(MAX_NOTE_LENGTH, e.note.length)
+    }
+
+    @Test fun updateSetsAndClearsNote() {
+        val book = ExpenseBook()
+        val id = book.add("Lunch", 5.0, "Food", 1L).id
+        book.update(id, "Lunch", 5.0, "Food", null, " bus pass ")
+        assertEquals("bus pass", book.expenses[0].note)
+        book.update(id, "Lunch", 5.0, "Food", null, " ")
+        assertEquals("", book.expenses[0].note)
+    }
+
+    @Test fun searchMatchesNote() {
+        val book = ExpenseBook()
+        book.add("Lunch", 5.0, "Food", 1L, "with Ram")
+        book.add("Tea", 2.0, "Food", 2L)
+        assertEquals(listOf("Lunch"), book.search("ram").map { it.title })
+    }
+
+    @Test fun noteSurvivesSerialization() {
+        val book = ExpenseBook()
+        book.add("Lunch", 5.0, "Food", 1L, "a\tb\nc \\")
+        assertEquals(book.expenses, ExpenseBook.deserialize(book.serialize()).expenses)
+    }
+
+    @Test fun legacyLinesLoadWithEmptyNote() {
+        assertEquals("", ExpenseBook.deserialize("1\tMomo\t250.0\tFood").expenses[0].note)
+        assertEquals("", ExpenseBook.deserialize("1\tMomo\t250.0\tFood\t99").expenses[0].note)
+    }
+}
+
 class ExpenseBookDateTest {
     private val zone = java.time.ZoneId.of("UTC")
     private fun ts(y: Int, m: Int, d: Int) =
