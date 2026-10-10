@@ -72,4 +72,7 @@
     <string name="search_expenses">Search by title</string>
     <string name="clear_search">Clear search</string>
     <string name="no_results">No matching expenses</string>
+    <string name="previous_month">Previous month</string>
+    <string name="next_month">Next month</string>
+    <string name="no_expenses_in_month">No expenses in %1$s. Nothing to worry about!</string>
 </resources>

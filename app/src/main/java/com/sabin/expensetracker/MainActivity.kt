@@ -192,7 +192,13 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
             }
         }
     }
-    val expenses = remember(version, filter, query) { book.search(query, filter) }
+    val today = remember(version) { java.time.LocalDate.now() }
+    val currentMonth = java.time.YearMonth.from(today)
+    val earliestMonth = remember(version) { MonthSelection.earliest(book.expenses, currentMonth) }
+    var selectedMonth by remember { mutableStateOf(currentMonth) }
+    val month = MonthSelection.clamp(selectedMonth, earliestMonth, currentMonth)
+    val monthLabel = MonthSelection.label(month)
+    val expenses = remember(version, filter, query, month) { MonthSelection.filter(book.search(query, filter), month) }
 
     fun closeForm() { title = ""; amount = ""; monthly = false; error = null; showForm = false; editingId = null
         date = java.time.LocalDate.now(); timeOfDay = null }
@@ -300,6 +306,8 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
             }
         }
     }
+    val emptyMonthText = stringResource(R.string.no_expenses_in_month, monthLabel)
+    val noResultsText = stringResource(R.string.no_results)
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     Scaffold(
@@ -319,11 +327,17 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 96.dp)
         ) {
             item {
-                val now = remember(version) { java.time.LocalDate.now() }
-                val monthSpent = book.totalForMonth(now.year, now.monthValue)
+                val now = today
+                val monthSpent = book.totalForMonth(month.year, month.monthValue)
                 val streak = loggingStreak(book.expenses, now)
-                val status = budgetStatus(monthSpent, budget, now.dayOfMonth, now.lengthOfMonth())
-                HeroCard(monthSpent, status, streak, Modifier.padding(bottom = 12.dp))
+                val isCurrent = month == currentMonth
+                val status = budgetStatus(monthSpent, budget, if (isCurrent) now.dayOfMonth else month.lengthOfMonth(), month.lengthOfMonth())
+                HeroCard(
+                    monthSpent, status, streak, monthLabel,
+                    MonthSelection.previous(month, earliestMonth)?.let { m -> { selectedMonth = m } },
+                    MonthSelection.next(month, currentMonth)?.let { m -> { selectedMonth = m } },
+                    Modifier.padding(bottom = 12.dp)
+                )
                 Row(
                     Modifier.fillMaxWidth().padding(vertical = 4.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -345,7 +359,7 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth()
                 )
-                CategoryDonut(categoryShares(monthCategoryTotals(book.expenses, now.year, now.monthValue)))
+                CategoryDonut(categoryShares(monthCategoryTotals(book.expenses, month.year, month.monthValue)))
                 Spacer(Modifier.height(12.dp))
                 WeekBars(dailyTotals(book.expenses, now))
                 Spacer(Modifier.height(12.dp))
@@ -407,7 +421,7 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
             if (book.expenses.isEmpty()) {
                 item { EmptyState(onAdd = { showForm = true }) }
             } else if (expenses.isEmpty()) {
-                item { Text(stringResource(R.string.no_results), Modifier.padding(16.dp)) }
+                item { Text(if (query.isEmpty() && filter == null) emptyMonthText else noResultsText, Modifier.padding(16.dp)) }
             }
             items(expenses, key = { it.id }) { e ->
                 ElevatedCard(Modifier.fillMaxWidth().padding(vertical = 4.dp).animateItem(

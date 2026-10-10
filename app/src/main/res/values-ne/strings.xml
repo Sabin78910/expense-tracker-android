@@ -72,4 +72,7 @@
     <string name="search_expenses">शीर्षकबाट खोज्नुहोस्</string>
     <string name="clear_search">खोज खाली गर्नुहोस्</string>
     <string name="no_results">मिल्ने कुनै खर्च छैन</string>
+    <string name="previous_month">अघिल्लो महिना</string>
+    <string name="next_month">अर्को महिना</string>
+    <string name="no_expenses_in_month">%1$s मा कुनै खर्च छैन। चिन्ता नलिनुहोस्!</string>
 </resources>
