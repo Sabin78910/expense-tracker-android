@@ -66,4 +66,7 @@
     <string name="edit_expense">Edit expense</string>
     <string name="save_changes">Save changes</string>
     <string name="edit_row_label">Edit %1$s</string>
+    <string name="search_expenses">Search by title</string>
+    <string name="clear_search">Clear search</string>
+    <string name="no_results">No matching expenses</string>
 </resources>

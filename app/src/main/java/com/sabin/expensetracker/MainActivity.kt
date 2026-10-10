@@ -31,6 +31,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -109,6 +110,7 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
     var monthly by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var filter by remember { mutableStateOf<String?>(null) }
+    var query by remember { mutableStateOf("") }
     var showForm by remember { mutableStateOf(startWithForm) }
     var editingId by remember { mutableStateOf<Long?>(null) }
     var backupMessage by remember { mutableStateOf<String?>(null) }
@@ -188,7 +190,7 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
             }
         }
     }
-    val expenses = remember(version, filter) { book.filterByCategory(filter) }
+    val expenses = remember(version, filter, query) { book.search(query, filter) }
 
     fun closeForm() { title = ""; amount = ""; monthly = false; error = null; showForm = false; editingId = null }
     fun startEdit(e: Expense) {
@@ -350,9 +352,27 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
                         FilterChip(selected = c == filter, onClick = { filter = c }, label = { Text(categoryLabel(c)) })
                     }
                 }
+                val searchLabel = stringResource(R.string.search_expenses)
+                val clearLabel = stringResource(R.string.clear_search)
+                OutlinedTextField(
+                    query, { query = it },
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                        .semantics { contentDescription = searchLabel },
+                    label = { Text(searchLabel) },
+                    singleLine = true,
+                    trailingIcon = {
+                        if (query.isNotEmpty()) {
+                            IconButton(onClick = { query = "" }) {
+                                Icon(Icons.Filled.Clear, contentDescription = clearLabel)
+                            }
+                        }
+                    }
+                )
             }
             if (book.expenses.isEmpty()) {
                 item { EmptyState(onAdd = { showForm = true }) }
+            } else if (expenses.isEmpty()) {
+                item { Text(stringResource(R.string.no_results), Modifier.padding(16.dp)) }
             }
             items(expenses, key = { it.id }) { e ->
                 ElevatedCard(Modifier.fillMaxWidth().padding(vertical = 4.dp).animateItem(

@@ -74,6 +74,12 @@ class ExpenseBook(initial: List<Expense> = emptyList()) {
     fun filterByCategory(category: String?): List<Expense> =
         if (category == null) expenses else items.filter { it.category == category }
 
+    /** Expenses whose title contains [query] (trimmed, case-insensitive), within [category] if given. */
+    fun search(query: String, category: String? = null): List<Expense> {
+        val q = query.trim()
+        return filterByCategory(category).filter { q.isEmpty() || it.title.contains(q, ignoreCase = true) }
+    }
+
     fun total(): Double = items.sumOf { it.amount }
 
     /** Sum of expenses dated in [year]/[month] (1-12) in [zone]. */
