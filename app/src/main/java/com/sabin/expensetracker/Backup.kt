@@ -2,12 +2,26 @@ package com.sabin.expensetracker
 
 class BackupException(message: String) : Exception(message)
 
+data class BackupData(val expenses: List<Expense>, val limits: CategoryLimits)
+
 /** JSON backup of expenses (no Android dependencies, so it is unit-testable). */
 object Backup {
     private const val VERSION = 1
 
-    fun export(expenses: List<Expense>): String = buildString {
-        append("{\"version\":").append(VERSION).append(",\"expenses\":[")
+    fun export(expenses: List<Expense>): String = exportFull(expenses, CategoryLimits.EMPTY)
+
+    /** Like [export] but also stores category limits (omitted when there are none). */
+    fun exportFull(expenses: List<Expense>, limits: CategoryLimits): String = buildString {
+        append("{\"version\":").append(VERSION)
+        if (!limits.isEmpty()) {
+            append(",\"categoryLimits\":{")
+            limits.entries().entries.forEachIndexed { i, (k, v) ->
+                if (i > 0) append(',')
+                append(quote(k)).append(':').append(v)
+            }
+            append('}')
+        }
+        append(",\"expenses\":[")
         expenses.forEachIndexed { i, e ->
             if (i > 0) append(',')
             append("{\"id\":").append(e.id)
@@ -20,12 +34,19 @@ object Backup {
     }
 
     /** Parses a backup; throws [BackupException] if the file is not a valid backup. */
-    fun parse(json: String): List<Expense> {
+    fun parse(json: String): List<Expense> = parseFull(json).expenses
+
+    /** Parses expenses and category limits; backups without limits yield empty limits. */
+    fun parseFull(json: String): BackupData {
         try {
             val root = Parser(json).parseDocument() as? Map<*, *> ?: bad("Not a backup file")
             if (root["version"] != VERSION.toDouble()) bad("Unsupported backup version")
             val list = root["expenses"] as? List<*> ?: bad("Missing expenses")
-            return list.map { item ->
+            val limits = (root["categoryLimits"] as? Map<*, *>)?.entries?.fold(CategoryLimits.EMPTY) { acc, (k, v) ->
+                val d = v as? Double
+                if (k is String && d != null) acc.with(k, d) else acc
+            } ?: CategoryLimits.EMPTY
+            val expenses = list.map { item ->
                 val m = item as? Map<*, *> ?: bad("Invalid expense")
                 val amount = m["amount"] as? Double ?: bad("Invalid amount")
                 val title = m["title"] as? String ?: bad("Invalid title")
@@ -38,6 +59,7 @@ object Backup {
                     wholeNumber(m["timestamp"])
                 )
             }
+            return BackupData(expenses, limits)
         } catch (e: BackupException) {
             throw e
         } catch (e: RuntimeException) {
