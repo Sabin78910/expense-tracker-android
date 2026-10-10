@@ -400,6 +400,7 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
                     monthSpent, status, streak, monthLabel,
                     MonthSelection.previous(month, earliestMonth)?.let { m -> { selectedMonth = m } },
                     MonthSelection.next(month, currentMonth)?.let { m -> { selectedMonth = m } },
+                    compareWithPreviousMonth(book.expenses, month, now),
                     Modifier.padding(bottom = 12.dp)
                 )
                 Row(

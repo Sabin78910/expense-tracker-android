@@ -83,4 +83,10 @@
     <string name="add_category">Add category</string>
     <string name="remove_category">Remove category %1$s</string>
     <string name="remove_category_message">Expenses in %1$s will move to Other.</string>
+    <string name="compare_less">%1$d%% less than last month at this point</string>
+    <string name="compare_more">%1$d%% more than last month at this point</string>
+    <string name="compare_same">Same as last month at this point</string>
+    <string name="compare_none_last">Nothing spent at this point last month</string>
+    <string name="compare_category_less">%1$s: %2$s less than last month</string>
+    <string name="compare_category_more">%1$s: %2$s more than last month</string>
 </resources>

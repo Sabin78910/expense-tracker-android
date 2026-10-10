@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import kotlin.math.abs
 
 @Composable
 fun HeroCard(
@@ -29,6 +30,7 @@ fun HeroCard(
     monthLabel: String,
     onPrevious: (() -> Unit)?,
     onNext: (() -> Unit)?,
+    comparison: MonthComparison? = null,
     modifier: Modifier = Modifier
 ) {
     val anim = remember { Animatable(0f) }
@@ -54,6 +56,23 @@ fun HeroCard(
                 }
             }
             Text(formatNpr(shown), style = MaterialTheme.typography.displayMedium, color = scheme.onPrimary)
+            if (comparison != null) {
+                val pct = comparison.percentChange
+                val line = when {
+                    pct == null -> stringResource(R.string.compare_none_last)
+                    pct < 0 -> stringResource(R.string.compare_less, -pct)
+                    pct > 0 -> stringResource(R.string.compare_more, pct)
+                    else -> stringResource(R.string.compare_same)
+                }
+                Text(line, style = MaterialTheme.typography.bodyMedium, color = scheme.onPrimary)
+                comparison.topCategory?.let {
+                    val res = if (it.delta < 0) R.string.compare_category_less else R.string.compare_category_more
+                    Text(
+                        stringResource(res, it.category, formatNpr(abs(it.delta))),
+                        style = MaterialTheme.typography.bodyMedium, color = scheme.onPrimary
+                    )
+                }
+            }
             if (status.band != BudgetBand.NONE) {
                 Spacer(Modifier.height(8.dp))
                 LinearProgressIndicator(
