@@ -93,4 +93,39 @@ class ExpenseBookTest {
         assertEquals(0L, book.expenses[0].timestamp)
         assertEquals(0.0, book.totalForMonth(2026, 10, java.time.ZoneOffset.UTC), 0.001)
     }
+
+    @Test fun restoreAfterRemoveBringsBackSameItemAndTotals() {
+        val book = ExpenseBook()
+        book.add("Tea", 30.0, "Food", 1_700_000_000_000L)
+        val e = book.add("Momo", 250.0, "Food", 1_700_000_100_000L)
+        book.add("Bus", 50.0, "Transport", 1_700_000_200_000L)
+        val before = book.expenses
+        val total = book.total()
+        val cats = book.totalsByCategory()
+        val month = book.totalForMonth(2023, 11, java.time.ZoneOffset.UTC)
+        book.remove(e.id)
+        book.restore(e)
+        assertEquals(before, book.expenses)
+        assertEquals(total, book.total(), 0.001)
+        assertEquals(cats, book.totalsByCategory())
+        assertEquals(month, book.totalForMonth(2023, 11, java.time.ZoneOffset.UTC), 0.001)
+    }
+
+    @Test fun restoreExistingIdIsNoOp() {
+        val book = ExpenseBook()
+        val e = book.add("Tea", 30.0, "Food")
+        book.restore(e)
+        book.restore(e.copy(title = "Other"))
+        assertEquals(listOf(e), book.expenses)
+    }
+
+    @Test fun restoreDoesNotReuseIds() {
+        val book = ExpenseBook()
+        val e = book.add("Tea", 30.0, "Food")
+        book.remove(e.id)
+        val n = book.add("Bus", 50.0, "Transport")
+        book.restore(e)
+        assertEquals(e.id + 1, n.id)
+        assertEquals(e.id + 2, book.add("X", 1.0, "Other").id)
+    }
 }
