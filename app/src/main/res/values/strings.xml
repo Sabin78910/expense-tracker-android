@@ -79,4 +79,8 @@
     <string name="category_limit">%1$s monthly limit (NPR)</string>
     <string name="category_left">%1$s left</string>
     <string name="category_over">%1$s over</string>
+    <string name="new_category">New category</string>
+    <string name="add_category">Add category</string>
+    <string name="remove_category">Remove category %1$s</string>
+    <string name="remove_category_message">Expenses in %1$s will move to Other.</string>
 </resources>

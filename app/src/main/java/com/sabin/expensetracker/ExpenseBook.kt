@@ -71,6 +71,13 @@ class ExpenseBook(initial: List<Expense> = emptyList()) {
         items.removeAll { it.id == id }
     }
 
+    /** Moves every expense in category [from] to [to]; returns how many changed. */
+    fun reassignCategory(from: String, to: String): Int {
+        var n = 0
+        items.indices.forEach { i -> if (items[i].category == from) { items[i] = items[i].copy(category = to); n++ } }
+        return n
+    }
+
     /** Re-inserts a removed [expense] with its original id; no-op if that id is present. */
     fun restore(expense: Expense) {
         if (items.any { it.id == expense.id }) return
