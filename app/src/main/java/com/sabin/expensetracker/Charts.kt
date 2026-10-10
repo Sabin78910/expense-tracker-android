@@ -22,7 +22,8 @@ private val CHART_COLORS = listOf(
     Color(0xFF00ACC1), Color(0xFFFF7043)
 )
 
-private fun colorFor(index: Int) = CHART_COLORS[index % CHART_COLORS.size]
+fun chartColor(index: Int) = CHART_COLORS[index % CHART_COLORS.size]
+private fun colorFor(index: Int) = chartColor(index)
 
 @Composable
 fun CategoryDonut(shares: List<CategoryShare>) {

@@ -1,7 +1,7 @@
 package com.sabin.expensetracker
 
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -17,7 +17,12 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import kotlin.math.abs
@@ -31,11 +36,20 @@ fun HeroCard(
     onPrevious: (() -> Unit)?,
     onNext: (() -> Unit)?,
     comparison: MonthComparison? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    budget: Double = 0.0
 ) {
-    val anim = remember { Animatable(0f) }
-    LaunchedEffect(monthSpent) { anim.animateTo(1f, tween(800)) }
+    val reduced = animationsOff(LocalContext.current)
+    val anim = remember { Animatable(if (reduced) 1f else 0f) }
+    LaunchedEffect(monthSpent) {
+        if (reduced) anim.snapTo(1f) else { anim.snapTo(0f); anim.animateTo(1f, spring(dampingRatio = 0.7f, stiffness = 120f)) }
+    }
     val shown = countUpValue(monthSpent, anim.value)
+    val leftTarget = budgetLeftFraction(monthSpent, budget)
+    val ring = remember { Animatable(leftTarget) }
+    LaunchedEffect(leftTarget) {
+        if (reduced) ring.snapTo(leftTarget) else ring.animateTo(leftTarget, spring(dampingRatio = 0.6f, stiffness = 200f))
+    }
     val scheme = MaterialTheme.colorScheme
     Box(
         modifier.fillMaxWidth().clip(MaterialTheme.shapes.extraLarge)
@@ -55,7 +69,30 @@ fun HeroCard(
                     Icon(AppIcons.ChevronRight, stringResource(R.string.next_month))
                 }
             }
-            Text(formatNpr(shown), style = MaterialTheme.typography.displayMedium, color = scheme.onPrimary)
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    formatNpr(shown), Modifier.weight(1f),
+                    style = MaterialTheme.typography.displayMedium, color = scheme.onPrimary
+                )
+                if (status.band != BudgetBand.NONE) {
+                    val band = ringBand(monthSpent, budget)
+                    val ringColor = when (band) {
+                        BudgetBand.AMBER -> Color(0xFFFFC107)
+                        BudgetBand.RED -> Color(0xFFFF5252)
+                        else -> scheme.onPrimary
+                    }
+                    val track = scheme.onPrimary.copy(alpha = 0.3f)
+                    Canvas(
+                        Modifier.size(72.dp).semantics { contentDescription = ringDescription(band, leftTarget) }
+                    ) {
+                        val stroke = 10.dp.toPx()
+                        val arc = Size(size.width - stroke, size.height - stroke)
+                        val topLeft = Offset(stroke / 2, stroke / 2)
+                        drawArc(track, 0f, 360f, false, topLeft, arc, style = Stroke(stroke))
+                        drawArc(ringColor, -90f, 360f * ring.value, false, topLeft, arc, style = Stroke(stroke, cap = StrokeCap.Round))
+                    }
+                }
+            }
             if (comparison != null) {
                 val pct = comparison.percentChange
                 val line = when {
@@ -64,7 +101,11 @@ fun HeroCard(
                     pct > 0 -> stringResource(R.string.compare_more, pct)
                     else -> stringResource(R.string.compare_same)
                 }
-                Text(line, style = MaterialTheme.typography.bodyMedium, color = scheme.onPrimary)
+                val arrow = deltaArrow(pct)
+                Text(
+                    if (arrow.isEmpty()) line else "$arrow $line",
+                    style = MaterialTheme.typography.bodyMedium, color = scheme.onPrimary
+                )
                 comparison.topCategory?.let {
                     val res = if (it.delta < 0) R.string.compare_category_less else R.string.compare_category_more
                     Text(
@@ -75,12 +116,6 @@ fun HeroCard(
             }
             if (status.band != BudgetBand.NONE) {
                 Spacer(Modifier.height(8.dp))
-                LinearProgressIndicator(
-                    progress = { status.progress },
-                    color = scheme.onPrimary,
-                    trackColor = scheme.onPrimary.copy(alpha = 0.3f),
-                    modifier = Modifier.fillMaxWidth()
-                )
                 Text(
                     budgetPercentLabel(status.progress, true) + " · " + status.remainingLabel,
                     style = MaterialTheme.typography.bodyMedium, color = scheme.onPrimary
@@ -90,6 +125,31 @@ fun HeroCard(
                 Spacer(Modifier.height(8.dp))
                 AssistChip(onClick = {}, label = { Text(streakLabel(streak)) })
             }
+        }
+    }
+}
+
+/** Category chips with tinted icons, shown above the donut. */
+@Composable
+fun CategoryChips(shares: List<CategoryShare>, modifier: Modifier = Modifier) {
+    if (shares.isEmpty()) return
+    androidx.compose.foundation.layout.FlowRow(
+        modifier.fillMaxWidth().padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        shares.forEachIndexed { i, s ->
+            AssistChip(
+                onClick = {},
+                modifier = Modifier.heightIn(min = 48.dp),
+                label = { Text("${categoryLabel(s.category)} ${s.percent}%") },
+                leadingIcon = {
+                    Box(
+                        Modifier.size(24.dp).clip(CircleShape).background(chartColor(i).copy(alpha = 0.25f))
+                            .clearAndSetSemantics {},
+                        contentAlignment = Alignment.Center
+                    ) { Text(categoryGlyph(s.category)) }
+                }
+            )
         }
     }
 }
