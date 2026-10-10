@@ -106,6 +106,7 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
     var version by remember { mutableIntStateOf(0) }
     var title by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
+    var note by remember { mutableStateOf("") }
     var category by remember { mutableStateOf(CATEGORIES.first()) }
     var monthly by remember { mutableStateOf(false) }
     var date by remember { mutableStateOf(java.time.LocalDate.now()) }
@@ -206,10 +207,10 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
     val monthLabel = MonthSelection.label(month)
     val expenses = remember(version, filter, query, month) { MonthSelection.filter(book.search(query, filter), month) }
 
-    fun closeForm() { title = ""; amount = ""; monthly = false; error = null; showForm = false; editingId = null
+    fun closeForm() { title = ""; amount = ""; note = ""; monthly = false; error = null; showForm = false; editingId = null
         date = java.time.LocalDate.now(); timeOfDay = null }
     fun startEdit(e: Expense) {
-        title = e.title; amount = e.amount.toString(); category = e.category
+        title = e.title; amount = e.amount.toString(); note = e.note; category = e.category
         val zone = ZoneId.systemDefault()
         date = if (e.timestamp > 0) Instant.ofEpochMilli(e.timestamp).atZone(zone).toLocalDate() else java.time.LocalDate.now()
         timeOfDay = if (e.timestamp > 0) ExpenseDate.timeOfDay(e.timestamp, zone) else null
@@ -221,14 +222,14 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
             ExpenseDate.timestampFor(date, timeOfDay ?: java.time.LocalTime.now())
         }.getOrElse { error = it.message; return }
         if (editing != null) {
-            runCatching { book.update(editing, title, amount.toDoubleOrNull() ?: 0.0, category, stamp) }
+            runCatching { book.update(editing, title, amount.toDoubleOrNull() ?: 0.0, category, stamp, note) }
                 .onSuccess { closeForm(); save(); version++ }
                 .onFailure { error = it.message }
             return
         }
         runCatching {
             val value = amount.toDoubleOrNull() ?: 0.0
-            val e = book.add(title, value, category, stamp)
+            val e = book.add(title, value, category, stamp, note)
             if (monthly) {
                 val day = Instant.ofEpochMilli(e.timestamp).atZone(ZoneId.systemDefault()).dayOfMonth
                 recurring.add(title, value, category, day)
@@ -236,7 +237,7 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
                 recurring.applyDue(ExpenseBook(), java.time.LocalDate.now())
             }
         }
-            .onSuccess { title = ""; amount = ""; monthly = false; error = null; showForm = false; save(); version++ }
+            .onSuccess { title = ""; amount = ""; note = ""; monthly = false; error = null; showForm = false; save(); version++ }
             .onFailure { error = it.message }
     }
     if (showForm) {
@@ -251,6 +252,10 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
                     amount, { amount = filterDecimalInput(amount, it) }, label = { Text(stringResource(R.string.amount)) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth().focusRequester(amountFocus)
+                )
+                OutlinedTextField(
+                    note, { note = filterNoteInput(note, it) }, label = { Text(stringResource(R.string.note)) },
+                    singleLine = true, modifier = Modifier.fillMaxWidth()
                 )
                 FlowRow(
                     Modifier.padding(vertical = 8.dp),
@@ -445,11 +450,20 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
                     fadeOutSpec = spring()
                 )) {
                     val editDescription = stringResource(R.string.edit_row_label, e.title)
+                    val categoryText = categoryLabel(e.category)
                     ListItem(
-                        modifier = Modifier.clickable(onClickLabel = editDescription) { startEdit(e) },
+                        modifier = Modifier.clickable(onClickLabel = editDescription) { startEdit(e) }
+                            .semantics(mergeDescendants = true) {
+                                if (e.note.isNotEmpty()) contentDescription = expenseSummary(e.title, categoryText, e.amount, e.note)
+                            },
                         leadingContent = { CategoryBadge(e.category) },
                         headlineContent = { Text(e.title) },
-                        supportingContent = { Text(categoryLabel(e.category)) },
+                        supportingContent = {
+                            Column {
+                                Text(categoryText)
+                                if (e.note.isNotEmpty()) Text(e.note, style = MaterialTheme.typography.bodySmall)
+                            }
+                        },
                         trailingContent = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(formatNpr(e.amount))

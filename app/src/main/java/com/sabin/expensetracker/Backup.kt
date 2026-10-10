@@ -28,7 +28,9 @@ object Backup {
             append(",\"title\":").append(quote(e.title))
             append(",\"amount\":").append(e.amount)
             append(",\"category\":").append(quote(e.category))
-            append(",\"timestamp\":").append(e.timestamp).append('}')
+            append(",\"timestamp\":").append(e.timestamp)
+            if (e.note.isNotEmpty()) append(",\"note\":").append(quote(e.note))
+            append('}')
         }
         append("]}")
     }
@@ -56,7 +58,8 @@ object Backup {
                     title,
                     amount,
                     m["category"] as? String ?: bad("Invalid category"),
-                    wholeNumber(m["timestamp"])
+                    wholeNumber(m["timestamp"]),
+                    (m["note"] as? String ?: "").trim().take(MAX_NOTE_LENGTH)
                 )
             }
             return BackupData(expenses, limits)

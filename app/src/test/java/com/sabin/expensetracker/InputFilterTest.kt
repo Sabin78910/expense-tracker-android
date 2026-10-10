@@ -26,4 +26,12 @@ class InputFilterTest {
         assertEquals("Mon", weekdayLabel(monday, Locale.ENGLISH))
         assertEquals("lun", weekdayLabel(monday, Locale.FRENCH).lowercase().take(3))
     }
+
+    @Test
+    fun noteInputRejectsTooLongAndMultiline() {
+        assertEquals("ab", filterNoteInput("a", "ab"))
+        assertEquals("a", filterNoteInput("a", "a".repeat(MAX_NOTE_LENGTH + 1)))
+        assertEquals("a", filterNoteInput("a", "a\nb"))
+        assertEquals("x".repeat(MAX_NOTE_LENGTH), filterNoteInput("", "x".repeat(MAX_NOTE_LENGTH)))
+    }
 }
