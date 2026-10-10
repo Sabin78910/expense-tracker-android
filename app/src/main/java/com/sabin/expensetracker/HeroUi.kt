@@ -22,7 +22,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun HeroCard(monthSpent: Double, status: BudgetStatus, streak: Streak, modifier: Modifier = Modifier) {
+fun HeroCard(
+    monthSpent: Double,
+    status: BudgetStatus,
+    streak: Streak,
+    monthLabel: String,
+    onPrevious: (() -> Unit)?,
+    onNext: (() -> Unit)?,
+    modifier: Modifier = Modifier
+) {
     val anim = remember { Animatable(0f) }
     LaunchedEffect(monthSpent) { anim.animateTo(1f, tween(800)) }
     val shown = countUpValue(monthSpent, anim.value)
@@ -33,7 +41,18 @@ fun HeroCard(monthSpent: Double, status: BudgetStatus, streak: Streak, modifier:
             .padding(20.dp)
     ) {
         Column {
-            Text(stringResource(R.string.this_month), style = MaterialTheme.typography.labelLarge, color = scheme.onPrimary)
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = { onPrevious?.invoke() }, enabled = onPrevious != null, modifier = Modifier.size(48.dp)) {
+                    Icon(AppIcons.ChevronLeft, stringResource(R.string.previous_month))
+                }
+                Text(
+                    monthLabel, Modifier.weight(1f), style = MaterialTheme.typography.labelLarge,
+                    color = scheme.onPrimary, textAlign = TextAlign.Center
+                )
+                IconButton(onClick = { onNext?.invoke() }, enabled = onNext != null, modifier = Modifier.size(48.dp)) {
+                    Icon(AppIcons.ChevronRight, stringResource(R.string.next_month))
+                }
+            }
             Text(formatNpr(shown), style = MaterialTheme.typography.displayMedium, color = scheme.onPrimary)
             if (status.band != BudgetBand.NONE) {
                 Spacer(Modifier.height(8.dp))
