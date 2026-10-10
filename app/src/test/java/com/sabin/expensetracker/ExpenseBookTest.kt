@@ -1,6 +1,7 @@
 package com.sabin.expensetracker
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ExpenseBookTest {
@@ -127,5 +128,34 @@ class ExpenseBookTest {
         book.restore(e)
         assertEquals(e.id + 1, n.id)
         assertEquals(e.id + 2, book.add("X", 1.0, "Other").id)
+    }
+
+    @Test fun updateChangesFieldsKeepingIdTimestampAndPosition() {
+        val book = ExpenseBook()
+        val a = book.add("Tea", 30.0, "Food", 111L)
+        val b = book.add("Bus", 50.0, "Transport", 222L)
+        book.update(a.id, " Momo ", 250.0, "Bills")
+        assertEquals(listOf(b, Expense(a.id, "Momo", 250.0, "Bills", 111L)), book.expenses)
+    }
+
+    @Test fun updateWithBlankTitleThrowsAndKeepsExpense() {
+        val book = ExpenseBook()
+        val e = book.add("Tea", 30.0, "Food")
+        assertTrue(runCatching { book.update(e.id, " ", 10.0, "Food") }.exceptionOrNull() is IllegalArgumentException)
+        assertEquals(listOf(e), book.expenses)
+    }
+
+    @Test fun updateWithNonPositiveAmountThrowsAndKeepsExpense() {
+        val book = ExpenseBook()
+        val e = book.add("Tea", 30.0, "Food")
+        assertTrue(runCatching { book.update(e.id, "Tea", 0.0, "Food") }.exceptionOrNull() is IllegalArgumentException)
+        assertEquals(listOf(e), book.expenses)
+    }
+
+    @Test fun updateUnknownIdIsNoOp() {
+        val book = ExpenseBook()
+        val e = book.add("Tea", 30.0, "Food")
+        book.update(999L, "X", 1.0, "Other")
+        assertEquals(listOf(e), book.expenses)
     }
 }

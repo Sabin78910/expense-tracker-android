@@ -12,6 +12,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -109,6 +110,7 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
     var error by remember { mutableStateOf<String?>(null) }
     var filter by remember { mutableStateOf<String?>(null) }
     var showForm by remember { mutableStateOf(startWithForm) }
+    var editingId by remember { mutableStateOf<Long?>(null) }
     var backupMessage by remember { mutableStateOf<String?>(null) }
     var backedUp by remember { mutableStateOf(prefs.getBoolean("backed_up", false)) }
     var unlocked by remember { mutableStateOf(BadgeStore.parse(prefs.getString("badges", "") ?: "")) }
@@ -188,7 +190,19 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
     }
     val expenses = remember(version, filter) { book.filterByCategory(filter) }
 
+    fun closeForm() { title = ""; amount = ""; monthly = false; error = null; showForm = false; editingId = null }
+    fun startEdit(e: Expense) {
+        title = e.title; amount = e.amount.toString(); category = e.category
+        monthly = false; error = null; editingId = e.id; showForm = true
+    }
     fun addExpense() {
+        val editing = editingId
+        if (editing != null) {
+            runCatching { book.update(editing, title, amount.toDoubleOrNull() ?: 0.0, category) }
+                .onSuccess { closeForm(); save(); version++ }
+                .onFailure { error = it.message }
+            return
+        }
         runCatching {
             val value = amount.toDoubleOrNull() ?: 0.0
             val e = book.add(title, value, category)
@@ -203,7 +217,7 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
             .onFailure { error = it.message }
     }
     if (showForm) {
-        ModalBottomSheet(onDismissRequest = { showForm = false }) {
+        ModalBottomSheet(onDismissRequest = { closeForm() }) {
             Column(Modifier.padding(horizontal = 16.dp).verticalScroll(rememberScrollState())) {
                 val titleFocus = remember { FocusRequester() }
                 val amountFocus = remember { FocusRequester() }
@@ -224,11 +238,15 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
                     }
                 }
                 error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(monthly, { monthly = it })
-                    Text(stringResource(R.string.repeat_monthly))
+                if (editingId == null) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(monthly, { monthly = it })
+                        Text(stringResource(R.string.repeat_monthly))
+                    }
                 }
-                Button(onClick = { addExpense() }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.add_expense)) }
+                Button(onClick = { addExpense() }, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(if (editingId == null) R.string.add_expense else R.string.save_changes))
+                }
                 Spacer(Modifier.height(24.dp))
             }
         }
@@ -341,7 +359,9 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
                     fadeInSpec = spring(), placementSpec = spring(stiffness = Spring.StiffnessMediumLow),
                     fadeOutSpec = spring()
                 )) {
+                    val editDescription = stringResource(R.string.edit_row_label, e.title)
                     ListItem(
+                        modifier = Modifier.clickable(onClickLabel = editDescription) { startEdit(e) },
                         leadingContent = { CategoryBadge(e.category) },
                         headlineContent = { Text(e.title) },
                         supportingContent = { Text(categoryLabel(e.category)) },
