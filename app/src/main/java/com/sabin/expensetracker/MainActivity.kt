@@ -29,10 +29,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Clear
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
@@ -87,6 +85,7 @@ fun ExpenseTheme(content: @Composable () -> Unit) {
 @Composable
 fun ExpenseScreen(startWithForm: Boolean = false) {
     val context = LocalContext.current
+    val resources = LocalResources.current
     val prefs = remember { context.getSharedPreferences("expenses", Context.MODE_PRIVATE) }
     val book = remember { ExpenseBook.deserialize(prefs.getString("data", "") ?: "") }
     val recurring = remember {
@@ -156,8 +155,8 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
                 }
                 prefs.edit().putBoolean("backed_up", true).apply()
                 backedUp = true
-                context.getString(R.string.backup_saved)
-            }.getOrElse { context.getString(R.string.backup_save_failed) }
+                resources.getString(R.string.backup_saved)
+            }.getOrElse { resources.getString(R.string.backup_save_failed) }
         }
     }
     val csvLauncher = rememberLauncherForActivityResult(
@@ -168,8 +167,8 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
                 context.contentResolver.openOutputStream(uri, "wt")!!.use {
                     it.write(CsvExport.export(book.expenses, java.time.ZoneId.systemDefault()).toByteArray(Charsets.UTF_8))
                 }
-                context.getString(R.string.csv_saved)
-            }.getOrElse { context.getString(R.string.csv_save_failed) }
+                resources.getString(R.string.csv_saved)
+            }.getOrElse { resources.getString(R.string.csv_save_failed) }
         }
     }
     val importLauncher = rememberLauncherForActivityResult(
@@ -182,11 +181,11 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
                 }
                 val added = book.merge(Backup.parse(text))
                 save(); version++
-                context.getString(R.string.restored_count, added)
+                resources.getString(R.string.restored_count, added)
             } catch (e: BackupException) {
-                context.getString(R.string.backup_invalid, e.message ?: "")
+                resources.getString(R.string.backup_invalid, e.message ?: "")
             } catch (e: java.io.IOException) {
-                context.getString(R.string.backup_read_failed)
+                resources.getString(R.string.backup_read_failed)
             }
         }
     }
@@ -274,7 +273,7 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = { showForm = true },
-                icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+                icon = { Icon(AppIcons.Add, contentDescription = null) },
                 text = { Text(stringResource(R.string.add_expense)) }
             )
         }
@@ -363,7 +362,7 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
                     trailingIcon = {
                         if (query.isNotEmpty()) {
                             IconButton(onClick = { query = "" }) {
-                                Icon(Icons.Filled.Clear, contentDescription = clearLabel)
+                                Icon(AppIcons.Clear, contentDescription = clearLabel)
                             }
                         }
                     }
