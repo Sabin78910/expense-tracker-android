@@ -31,14 +31,16 @@ class ExpenseBook(initial: List<Expense> = emptyList()) {
     }
 
     /**
-     * Replaces title, amount and category of expense [id], keeping its id, timestamp and position.
+     * Replaces title, amount and category of expense [id], keeping its id and position.
+     * The timestamp is kept unless [timestamp] is given.
      * Validates like [add]; an unknown [id] is a no-op.
      */
-    fun update(id: Long, title: String, amount: Double, category: String) {
+    fun update(id: Long, title: String, amount: Double, category: String, timestamp: Long? = null) {
         require(title.isNotBlank()) { "Title is required" }
         require(amount > 0) { "Amount must be positive" }
         val i = items.indexOfFirst { it.id == id }
-        if (i >= 0) items[i] = items[i].copy(title = title.trim(), amount = amount, category = category)
+        if (i >= 0) items[i] = items[i].copy(title = title.trim(), amount = amount, category = category,
+            timestamp = timestamp ?: items[i].timestamp)
     }
 
     /**
