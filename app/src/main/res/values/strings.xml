@@ -101,4 +101,5 @@
     <string name="saved_confirmation">Saved ✓</string>
     <string name="streak_grew">🔥 %d-day streak!</string>
     <string name="budget_section">Budget</string>
+    <string name="suggestion_hint">Double tap to fill</string>
 </resources>
