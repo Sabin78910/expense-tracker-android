@@ -23,6 +23,25 @@ fun isReducedMotion(animatorScale: Float): Boolean = animatorScale == 0f
 /** Tonal elevation in dp for surface level 0..5. */
 fun tonalElevationDp(level: Int): Float = level.coerceIn(0, 5) * 2f
 
+/** Corner radius for text fields. */
+const val FIELD_RADIUS_DP = 24f
+
+/** Tabular numerals so amounts typed into fields line up. */
+fun amountFieldTextStyle(): TextStyle = TextStyle(fontFeatureSettings = "tnum")
+
+/** WCAG relative luminance of an sRGB colour. */
+private fun luminance(c: Color): Double {
+    fun ch(v: Float): Double = v.toDouble().let { if (it <= 0.03928) it / 12.92 else Math.pow((it + 0.055) / 1.055, 2.4) }
+    return 0.2126 * ch(c.red) + 0.7152 * ch(c.green) + 0.0722 * ch(c.blue)
+}
+
+/** WCAG contrast ratio between two colours, 1..21. */
+fun contrastRatio(a: Color, b: Color): Double {
+    val la = luminance(a)
+    val lb = luminance(b)
+    return (maxOf(la, lb) + 0.05) / (minOf(la, lb) + 0.05)
+}
+
 const val EXPENSE_CARD_RADIUS_DP = 24f
 const val expenseShapesLargeDp = 28f
 
@@ -37,17 +56,19 @@ fun fallbackColorScheme(dark: Boolean): ColorScheme =
         background = Color(0xFF07130E),
         surface = Color(0xFF07130E),
         surfaceContainer = Color(0xFF0F211A),
-        onSurface = Color(0xFFDFE4DE)
+        onSurface = Color(0xFFDFE4DE),
+        onSurfaceVariant = Color(0xFFBFC9C2)
     ) else lightColorScheme(
-        primary = BRAND_SEED,
-        onPrimary = Color(0xFF00382A),
+        primary = Color(0xFF047857),
+        onPrimary = Color(0xFFFFFFFF),
         primaryContainer = Color(0xFFB8F5D8),
         onPrimaryContainer = Color(0xFF002114),
         secondary = Color(0xFF4D6357),
-        tertiary = BRAND_TEAL,
+        tertiary = Color(0xFF0F766E),
         background = Color(0xFFF5FBF6),
         surface = Color(0xFFF5FBF6),
-        onSurface = Color(0xFF171D19)
+        onSurface = Color(0xFF171D19),
+        onSurfaceVariant = Color(0xFF3F4944)
     )
 
 fun expenseShapes(): Shapes = Shapes(

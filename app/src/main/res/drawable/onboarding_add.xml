@@ -3,12 +3,13 @@
     android:height="240dp"
     android:viewportWidth="240"
     android:viewportHeight="240">
-    <path android:pathData="M0,0h240v240h-240z">
+    <path android:pathData="M28,0h184a28,28 0,0 1,28 28v184a28,28 0,0 1,-28 28h-184a28,28 0,0 1,-28 -28v-184a28,28 0,0 1,28 -28z">
         <aapt:attr xmlns:aapt="http://schemas.android.com/aapt" name="android:fillColor">
             <gradient android:startX="0" android:startY="0" android:endX="240" android:endY="240"
                 android:startColor="#B8F5D8" android:endColor="#F5FBF6" />
         </aapt:attr>
     </path>
-    <path android:fillColor="#10B981" android:pathData="M60,70h120a16,16 0,0 1,16 16v80a16,16 0,0 1,-16 16h-120a16,16 0,0 1,-16 -16v-80a16,16 0,0 1,16 -16z" />
-    <path android:fillColor="#FFFFFF" android:pathData="M112,100h16a6,6 0,0 1,6 6v28h28a6,6 0,0 1,0 12h-28v0a6,6 0,0 1,-12 0v0h-28a6,6 0,0 1,0 -12h28v-28a6,6 0,0 1,-6 -6z" />
+    <path android:fillColor="#0A6E5A" android:pathData="M120,56a64,64 0,1 0,0.1 0z" />
+    <path android:fillColor="#10B981" android:pathData="M120,64a56,56 0,1 0,0.1 0z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M108,90h24a4,4 0,0 1,4 4v26h26a4,4 0,0 1,4 4v8a4,4 0,0 1,-4 4h-26v26a4,4 0,0 1,-4 4h-24a4,4 0,0 1,-4 -4v-26h-26a4,4 0,0 1,-4 -4v-8a4,4 0,0 1,4 -4h26v-26a4,4 0,0 1,4 -4z" />
 </vector>

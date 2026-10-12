@@ -18,16 +18,14 @@ import androidx.compose.ui.unit.dp
 fun CategoryBudgetRow(category: String, spent: Double, limit: Double, onLimit: (Double) -> Unit) {
     val name = categoryLabel(category)
     var text by remember(category) { mutableStateOf(if (limit > 0) limit.toString() else "") }
-    OutlinedTextField(
+    AmountField(
         text,
         {
             text = filterDecimalInput(text, it)
             onLimit(text.toDoubleOrNull() ?: 0.0)
         },
-        label = { Text(stringResource(R.string.category_limit, name)) },
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-        singleLine = true,
-        modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+        stringResource(R.string.category_limit, name),
+        Modifier.padding(top = 12.dp)
     )
     val status = categoryBudgetStatus(spent, limit)
     if (status.band == BudgetBand.NONE) return
