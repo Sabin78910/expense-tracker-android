@@ -64,11 +64,15 @@ fun StreakMilestoneSheet(days: Int, onDismiss: () -> Unit) {
     }
 }
 
-/** 3x4 number pad; every key is at least 48dp. */
+/** number pad with an operator row; every key is at least 48dp. */
 @Composable
 fun NumberPad(onKey: (Char) -> Unit, modifier: Modifier = Modifier) {
     val backspace = stringResource(R.string.keypad_backspace)
-    val rows = listOf("123", "456", "789", ".0$KEYPAD_BACKSPACE")
+    val operatorNames = mapOf(
+        '+' to stringResource(R.string.calc_plus), '-' to stringResource(R.string.calc_minus),
+        '×' to stringResource(R.string.calc_times), '÷' to stringResource(R.string.calc_divide),
+    )
+    val rows = listOf("123", "456", "789", ".0$KEYPAD_BACKSPACE", KEYPAD_OPERATORS)
     Column(modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
         rows.forEach { row ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -76,7 +80,8 @@ fun NumberPad(onKey: (Char) -> Unit, modifier: Modifier = Modifier) {
                     FilledTonalButton(
                         onClick = { onKey(k) },
                         modifier = Modifier.weight(1f).heightIn(min = 48.dp).then(
-                            if (k == KEYPAD_BACKSPACE) Modifier.semantics { contentDescription = backspace } else Modifier
+                            if (k == KEYPAD_BACKSPACE) Modifier.semantics { contentDescription = backspace }
+                            else if (k in operatorNames) Modifier.semantics { contentDescription = operatorNames.getValue(k) } else Modifier
                         )
                     ) { Text(if (k == KEYPAD_BACKSPACE) "⌫" else k.toString(), style = MaterialTheme.typography.titleLarge) }
                 }

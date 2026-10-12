@@ -32,7 +32,9 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -230,14 +232,14 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
             ExpenseDate.timestampFor(date, timeOfDay ?: java.time.LocalTime.now())
         }.getOrElse { error = it.message; return }
         if (editing != null) {
-            runCatching { book.update(editing, title, amount.toDoubleOrNull() ?: 0.0, category, stamp, note) }
+            runCatching { book.update(editing, title, evaluateAmount(amount) ?: 0.0, category, stamp, note) }
                 .onSuccess { closeForm(); save(); version++ }
                 .onFailure { error = it.message }
             return
         }
         val streakBefore = loggingStreak(book.expenses, java.time.LocalDate.now()).current
         runCatching {
-            val value = amount.toDoubleOrNull() ?: 0.0
+            val value = evaluateAmount(amount) ?: 0.0
             val e = book.add(title, value, category, stamp, note)
             if (monthly) {
                 val day = Instant.ofEpochMilli(e.timestamp).atZone(ZoneId.systemDefault()).dayOfMonth
@@ -289,11 +291,22 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
                     OutlinedTextField(title, { title = it }, label = { Text(stringResource(R.string.title)) }, modifier = Modifier.fillMaxWidth().focusRequester(titleFocus))
                 }
                 OutlinedTextField(
-                    amount, { amount = filterDecimalInput(amount, it) }, label = { Text(stringResource(R.string.amount)) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    amount, { amount = filterAmountInput(amount, it) }, label = { Text(stringResource(R.string.amount)) },
+                    textStyle = MaterialTheme.typography.bodyLarge.merge(amountFieldTextStyle()),
+                    keyboardOptions = KeyboardOptions(keyboardType = if (padMode) KeyboardType.Decimal else KeyboardType.Text),
                     readOnly = padMode,
                     modifier = Modifier.fillMaxWidth().focusRequester(amountFocus)
                 )
+                if (isExpression(amount)) {
+                    val live = evaluateAmount(amount)
+                    val resultText = live?.let { stringResource(R.string.calc_result, "%,.2f".format(it).removeSuffix(".00")) }
+                    if (resultText != null) {
+                        Text(
+                            resultText, style = MaterialTheme.typography.titleMedium.merge(amountFieldTextStyle()),
+                            modifier = Modifier.padding(start = 16.dp, top = 4.dp).semantics { liveRegion = LiveRegionMode.Polite }
+                        )
+                    }
+                }
                 if (padMode) {
                     NumberPad({ k -> amount = keypadPress(amount, k) }, Modifier.padding(vertical = 8.dp))
                     OutlinedTextField(title, { title = it }, label = { Text(stringResource(R.string.title)) }, modifier = Modifier.fillMaxWidth())

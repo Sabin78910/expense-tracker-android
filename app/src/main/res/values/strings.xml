@@ -102,4 +102,9 @@
     <string name="streak_grew">🔥 %d-day streak!</string>
     <string name="budget_section">Budget</string>
     <string name="suggestion_hint">Double tap to fill</string>
+    <string name="calc_result">= Rs %1$s</string>
+    <string name="calc_plus">Plus</string>
+    <string name="calc_minus">Minus</string>
+    <string name="calc_times">Times</string>
+    <string name="calc_divide">Divide</string>
 </resources>
