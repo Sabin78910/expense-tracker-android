@@ -297,6 +297,25 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
                 if (padMode) {
                     NumberPad({ k -> amount = keypadPress(amount, k) }, Modifier.padding(vertical = 8.dp))
                     OutlinedTextField(title, { title = it }, label = { Text(stringResource(R.string.title)) }, modifier = Modifier.fillMaxWidth())
+                    val suggestions = remember(title, version) { suggestExpenses(book.expenses, title) }
+                    val fillHint = stringResource(R.string.suggestion_hint)
+                    FlowRow(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        suggestions.forEach { s ->
+                            val spoken = suggestionLabel(s.copy(category = categoryLabel(s.category)), fillHint)
+                            AssistChip(
+                                onClick = {
+                                    title = s.title; category = s.category; amount = s.amount.toString()
+                                    amountFocus.requestFocus()
+                                },
+                                label = {
+                                    Text("${s.title} · ${categoryLabel(s.category)} · Rs ${"%,.0f".format(s.amount)}",
+                                        style = amountFieldTextStyle())
+                                },
+                                modifier = Modifier.heightIn(min = 48.dp)
+                                    .semantics { contentDescription = spoken }
+                            )
+                        }
+                    }
                 }
                 OutlinedTextField(
                     note, { note = filterNoteInput(note, it) }, label = { Text(stringResource(R.string.note)) },
