@@ -87,6 +87,7 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
     val resources = LocalResources.current
     val prefs = remember { context.getSharedPreferences("expenses", Context.MODE_PRIVATE) }
     val book = remember { ExpenseBook.deserialize(prefs.getString("data", "") ?: "") }
+    val walletBook = remember { WalletBook.deserialize(prefs.getString("wallets", "") ?: "") }
     val recurring = remember {
         RecurringList.deserialize(prefs.getString("recurring", "") ?: "").also {
             if (it.applyDue(book, java.time.LocalDate.now()) > 0) {
@@ -96,7 +97,8 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
     }
     val scope = rememberCoroutineScope()
     fun save() {
-        prefs.edit().putString("data", book.serialize()).putString("recurring", recurring.serialize()).apply()
+        prefs.edit().putString("data", book.serialize()).putString("recurring", recurring.serialize())
+            .putString("wallets", walletBook.serialize()).apply()
         scope.launch { ExpenseWidget.refresh(context) }
     }
     var budget by remember { mutableDoubleStateOf(Double.fromBits(prefs.getLong("budget", 0L))) }
@@ -111,6 +113,10 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
     var amount by remember { mutableStateOf("") }
     var note by remember { mutableStateOf("") }
     var category by remember { mutableStateOf(CategoryList.DEFAULTS.first()) }
+    var walletId by remember {
+        val last = prefs.getLong("last_wallet", DEFAULT_WALLET_ID)
+        mutableLongStateOf(if (walletBook.wallet(last) != null) last else DEFAULT_WALLET_ID)
+    }
     var monthly by remember { mutableStateOf(false) }
     var date by remember { mutableStateOf(java.time.LocalDate.now()) }
     var timeOfDay by remember { mutableStateOf<java.time.LocalTime?>(null) }
@@ -164,7 +170,7 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
         if (uri != null) {
             backupMessage = runCatching {
                 context.contentResolver.openOutputStream(uri, "wt")!!.use {
-                    it.write(Backup.exportFull(book.expenses, limits, categories).toByteArray(Charsets.UTF_8))
+                    it.write(Backup.exportFull(book.expenses, limits, categories, walletBook = walletBook).toByteArray(Charsets.UTF_8))
                 }
                 prefs.edit().putBoolean("backed_up", true).apply()
                 backedUp = true
@@ -178,7 +184,7 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
         if (uri != null) {
             backupMessage = runCatching {
                 context.contentResolver.openOutputStream(uri, "wt")!!.use {
-                    it.write(CsvExport.export(book.expenses, java.time.ZoneId.systemDefault()).toByteArray(Charsets.UTF_8))
+                    it.write(CsvExport.export(book.expenses, java.time.ZoneId.systemDefault(), walletBook.wallets).toByteArray(Charsets.UTF_8))
                 }
                 resources.getString(R.string.csv_saved)
             }.getOrElse { resources.getString(R.string.csv_save_failed) }
@@ -195,7 +201,9 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
                 val data = Backup.parseFull(text)
                 categories = categories.withAll(data.categories + data.expenses.map { it.category })
                 saveCategories()
-                val added = book.merge(data.expenses)
+                val idMap = walletBook.mergeWallets(data.wallets)
+                walletBook.mergeTransfers(data.transfers, idMap)
+                val added = book.merge(data.expenses.map { it.copy(walletId = idMap[it.walletId] ?: DEFAULT_WALLET_ID) })
                 if (!data.limits.isEmpty()) {
                     limits = data.limits
                     prefs.edit().putString("category_limits", limits.serialize()).apply()
@@ -220,7 +228,7 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
     fun closeForm() { title = ""; amount = ""; note = ""; monthly = false; error = null; showForm = false; editingId = null
         date = java.time.LocalDate.now(); timeOfDay = null }
     fun startEdit(e: Expense) {
-        title = e.title; amount = e.amount.toString(); note = e.note; category = e.category
+        title = e.title; amount = e.amount.toString(); note = e.note; category = e.category; walletId = if (walletBook.wallet(e.walletId) != null) e.walletId else DEFAULT_WALLET_ID
         val zone = ZoneId.systemDefault()
         date = if (e.timestamp > 0) Instant.ofEpochMilli(e.timestamp).atZone(zone).toLocalDate() else java.time.LocalDate.now()
         timeOfDay = if (e.timestamp > 0) ExpenseDate.timeOfDay(e.timestamp, zone) else null
@@ -232,7 +240,7 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
             ExpenseDate.timestampFor(date, timeOfDay ?: java.time.LocalTime.now())
         }.getOrElse { error = it.message; return }
         if (editing != null) {
-            runCatching { book.update(editing, title, evaluateAmount(amount) ?: 0.0, category, stamp, note) }
+            runCatching { book.update(editing, title, evaluateAmount(amount) ?: 0.0, category, stamp, note, walletId) }
                 .onSuccess { closeForm(); save(); version++ }
                 .onFailure { error = it.message }
             return
@@ -240,7 +248,7 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
         val streakBefore = loggingStreak(book.expenses, java.time.LocalDate.now()).current
         runCatching {
             val value = evaluateAmount(amount) ?: 0.0
-            val e = book.add(title, value, category, stamp, note)
+            val e = book.add(title, value, category, stamp, note, walletId)
             if (monthly) {
                 val day = Instant.ofEpochMilli(e.timestamp).atZone(ZoneId.systemDefault()).dayOfMonth
                 recurring.add(title, value, category, day)
@@ -249,6 +257,7 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
             }
         }
             .onSuccess {
+                prefs.edit().putLong("last_wallet", walletId).apply()
                 title = ""; amount = ""; note = ""; monthly = false; error = null; showForm = false; save(); version++
                 val streakAfter = loggingStreak(book.expenses, java.time.LocalDate.now()).current
                 confirmHaptic(view)
@@ -334,6 +343,7 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
                     note, { note = filterNoteInput(note, it) }, label = { Text(stringResource(R.string.note)) },
                     singleLine = true, modifier = Modifier.fillMaxWidth()
                 )
+                WalletPicker(walletBook.wallets, walletId) { walletId = it }
                 FlowRow(
                     Modifier.padding(vertical = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -499,6 +509,8 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
                         Text(formatNpr(t))
                     }
                 }
+                WalletSection(walletBook, book.expenses, onChange = { save(); version++ },
+                    onMoveExpenses = { from, to -> book.reassignWallet(from, to) })
                 val monthTotals = monthCategoryTotals(book.expenses, month.year, month.monthValue).toMap()
                 categories.all.forEach { c ->
                     CategoryBudgetRow(

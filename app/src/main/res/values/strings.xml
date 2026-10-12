@@ -107,4 +107,25 @@
     <string name="calc_minus">Minus</string>
     <string name="calc_times">Times</string>
     <string name="calc_divide">Divide</string>
+    <string name="wallets">Wallets</string>
+    <string name="wallet">Wallet</string>
+    <string name="wallet_cash">Cash</string>
+    <string name="wallet_bank">Bank</string>
+    <string name="wallet_esewa">eSewa</string>
+    <string name="wallet_khalti">Khalti</string>
+    <string name="wallet_balance">%1$s balance %2$s</string>
+    <string name="add_wallet">Add wallet</string>
+    <string name="edit_wallet">Edit wallet</string>
+    <string name="wallet_name">Wallet name</string>
+    <string name="opening_balance">Opening balance</string>
+    <string name="wallet_invalid">Enter a unique name and a valid balance</string>
+    <string name="wallet_in_use">%1$s still has expenses. Move them to another wallet first.</string>
+    <string name="wallet_selected">%1$s wallet selected</string>
+    <string name="transfer">Transfer</string>
+    <string name="transfer_from">From %1$s</string>
+    <string name="transfer_to">To %1$s</string>
+    <string name="transfer_invalid">Pick two different wallets and enter an amount</string>
+    <string name="transfer_note">Transfers are not counted as spending</string>
+    <string name="move_expenses_to">Move %1$s expenses to %2$s</string>
+    <string name="done">Done</string>
 </resources>
