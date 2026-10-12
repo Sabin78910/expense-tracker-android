@@ -107,4 +107,25 @@
     <string name="calc_minus">घटाउ</string>
     <string name="calc_times">गुणा</string>
     <string name="calc_divide">भाग</string>
+    <string name="wallets">वालेटहरू</string>
+    <string name="wallet">वालेट</string>
+    <string name="wallet_cash">नगद</string>
+    <string name="wallet_bank">बैंक</string>
+    <string name="wallet_esewa">ईसेवा</string>
+    <string name="wallet_khalti">खल्ती</string>
+    <string name="wallet_balance">%1$s मौज्दात %2$s</string>
+    <string name="add_wallet">वालेट थप्नुहोस्</string>
+    <string name="edit_wallet">वालेट सम्पादन</string>
+    <string name="wallet_name">वालेटको नाम</string>
+    <string name="opening_balance">सुरुको मौज्दात</string>
+    <string name="wallet_invalid">अद्वितीय नाम र मान्य मौज्दात राख्नुहोस्</string>
+    <string name="wallet_in_use">%1$s मा अझै खर्चहरू छन्। पहिला अर्को वालेटमा सार्नुहोस्।</string>
+    <string name="wallet_selected">%1$s वालेट चयन गरियो</string>
+    <string name="transfer">ट्रान्सफर</string>
+    <string name="transfer_from">%1$s बाट</string>
+    <string name="transfer_to">%1$s मा</string>
+    <string name="transfer_invalid">दुई फरक वालेट छान्नुहोस् र रकम राख्नुहोस्</string>
+    <string name="transfer_note">ट्रान्सफर खर्चमा गनिँदैन</string>
+    <string name="move_expenses_to">%1$s का खर्चहरू %2$s मा सार्नुहोस्</string>
+    <string name="done">सकियो</string>
 </resources>

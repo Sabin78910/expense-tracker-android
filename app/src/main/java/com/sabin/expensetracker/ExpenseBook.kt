@@ -11,7 +11,9 @@ data class Expense(
     /** Epoch millis; 0 for expenses saved before timestamps existed. */
     val timestamp: Long = 0L,
     /** Optional short note; empty when none. */
-    val note: String = ""
+    val note: String = "",
+    /** Wallet the money came from; legacy expenses live in the default Cash wallet. */
+    val walletId: Long = DEFAULT_WALLET_ID
 )
 
 const val MAX_NOTE_LENGTH = 100
@@ -30,11 +32,12 @@ class ExpenseBook(initial: List<Expense> = emptyList()) {
         amount: Double,
         category: String,
         timestamp: Long = System.currentTimeMillis(),
-        note: String = ""
+        note: String = "",
+        walletId: Long = DEFAULT_WALLET_ID
     ): Expense {
         require(title.isNotBlank()) { "Title is required" }
         require(amount > 0) { "Amount must be positive" }
-        return Expense(nextId++, title.trim(), amount, category, timestamp, cleanNote(note)).also { items.add(0, it) }
+        return Expense(nextId++, title.trim(), amount, category, timestamp, cleanNote(note), walletId).also { items.add(0, it) }
     }
 
     /**
@@ -42,12 +45,13 @@ class ExpenseBook(initial: List<Expense> = emptyList()) {
      * The timestamp is kept unless [timestamp] is given. [note] replaces the old note (blank clears it).
      * Validates like [add]; an unknown [id] is a no-op.
      */
-    fun update(id: Long, title: String, amount: Double, category: String, timestamp: Long? = null, note: String = "") {
+    fun update(id: Long, title: String, amount: Double, category: String, timestamp: Long? = null, note: String = "", walletId: Long? = null) {
         require(title.isNotBlank()) { "Title is required" }
         require(amount > 0) { "Amount must be positive" }
         val i = items.indexOfFirst { it.id == id }
         if (i >= 0) items[i] = items[i].copy(title = title.trim(), amount = amount, category = category,
-            timestamp = timestamp ?: items[i].timestamp, note = cleanNote(note))
+            timestamp = timestamp ?: items[i].timestamp, note = cleanNote(note),
+            walletId = walletId ?: items[i].walletId)
     }
 
     /**
@@ -75,6 +79,13 @@ class ExpenseBook(initial: List<Expense> = emptyList()) {
     fun reassignCategory(from: String, to: String): Int {
         var n = 0
         items.indices.forEach { i -> if (items[i].category == from) { items[i] = items[i].copy(category = to); n++ } }
+        return n
+    }
+
+    /** Moves every expense in wallet [from] to [to]; returns how many changed. */
+    fun reassignWallet(from: Long, to: Long): Int {
+        var n = 0
+        items.indices.forEach { i -> if (items[i].walletId == from) { items[i] = items[i].copy(walletId = to); n++ } }
         return n
     }
 
@@ -114,9 +125,9 @@ class ExpenseBook(initial: List<Expense> = emptyList()) {
     fun sortedCategoryTotals(): List<Pair<String, Double>> =
         totalsByCategory().toList().sortedByDescending { it.second }
 
-    /** One expense per line, tab-separated: id, title, amount, category, timestamp, note (fields escaped). */
+    /** One expense per line, tab-separated: id, title, amount, category, timestamp, note, wallet id (fields escaped). */
     fun serialize(): String = items.joinToString("\n") {
-        listOf(it.id.toString(), escape(it.title), it.amount.toString(), escape(it.category), it.timestamp.toString(), escape(it.note))
+        listOf(it.id.toString(), escape(it.title), it.amount.toString(), escape(it.category), it.timestamp.toString(), escape(it.note), it.walletId.toString())
             .joinToString("\t")
     }
 
@@ -124,18 +135,19 @@ class ExpenseBook(initial: List<Expense> = emptyList()) {
         fun deserialize(data: String): ExpenseBook = ExpenseBook(
             data.lines().filter { it.isNotBlank() }.mapNotNull { line ->
                 val f = line.split("\t")
-                if (f.size !in 4..6) return@mapNotNull null
+                if (f.size !in 4..7) return@mapNotNull null
                 val id = f[0].toLongOrNull() ?: return@mapNotNull null
                 val amount = f[2].toDoubleOrNull() ?: return@mapNotNull null
                 val ts = if (f.size >= 5) f[4].toLongOrNull() ?: return@mapNotNull null else 0L
-                Expense(id, unescape(f[1]), amount, unescape(f[3]), ts, if (f.size == 6) unescape(f[5]) else "")
+                Expense(id, unescape(f[1]), amount, unescape(f[3]), ts, if (f.size >= 6) unescape(f[5]) else "",
+                    if (f.size == 7) f[6].toLongOrNull() ?: DEFAULT_WALLET_ID else DEFAULT_WALLET_ID)
             }
         )
 
-        private fun escape(s: String) =
+        internal fun escape(s: String) =
             s.replace("\\", "\\\\").replace("\t", "\\t").replace("\n", "\\n").replace("\r", "\\r")
 
-        private fun unescape(s: String): String {
+        internal fun unescape(s: String): String {
             val sb = StringBuilder()
             var i = 0
             while (i < s.length) {

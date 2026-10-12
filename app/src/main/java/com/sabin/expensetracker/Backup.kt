@@ -2,7 +2,10 @@ package com.sabin.expensetracker
 
 class BackupException(message: String) : Exception(message)
 
-data class BackupData(val expenses: List<Expense>, val limits: CategoryLimits, val categories: List<String> = emptyList())
+data class BackupData(val expenses: List<Expense>, val limits: CategoryLimits, val categories: List<String> = emptyList(),
+    val wallets: List<Wallet> = emptyList(),
+    val transfers: List<Transfer> = emptyList()
+)
 
 /** JSON backup of expenses (no Android dependencies, so it is unit-testable). */
 object Backup {
@@ -14,7 +17,8 @@ object Backup {
     fun exportFull(
         expenses: List<Expense>,
         limits: CategoryLimits,
-        categories: CategoryList = CategoryList.EMPTY
+        categories: CategoryList = CategoryList.EMPTY,
+        walletBook: WalletBook? = null
     ): String = buildString {
         append("{\"version\":").append(VERSION)
         if (categories.custom.isNotEmpty()) {
@@ -28,6 +32,17 @@ object Backup {
             }
             append('}')
         }
+        if (walletBook != null) {
+            append(",\"wallets\":[")
+            append(walletBook.wallets.joinToString(",") {
+                "{\"id\":${it.id},\"name\":${quote(it.name)},\"type\":\"${it.type.name}\",\"opening\":${it.openingBalance}}"
+            })
+            append("],\"transfers\":[")
+            append(walletBook.transfers.joinToString(",") {
+                "{\"id\":${it.id},\"from\":${it.fromId},\"to\":${it.toId},\"amount\":${it.amount},\"timestamp\":${it.timestamp}}"
+            })
+            append(']')
+        }
         append(",\"expenses\":[")
         expenses.forEachIndexed { i, e ->
             if (i > 0) append(',')
@@ -37,6 +52,7 @@ object Backup {
             append(",\"category\":").append(quote(e.category))
             append(",\"timestamp\":").append(e.timestamp)
             if (e.note.isNotEmpty()) append(",\"note\":").append(quote(e.note))
+            if (walletBook != null) append(",\"wallet\":").append(e.walletId)
             append('}')
         }
         append("]}")
@@ -67,10 +83,22 @@ object Backup {
                     amount,
                     m["category"] as? String ?: bad("Invalid category"),
                     wholeNumber(m["timestamp"]),
-                    (m["note"] as? String ?: "").trim().take(MAX_NOTE_LENGTH)
+                    (m["note"] as? String ?: "").trim().take(MAX_NOTE_LENGTH),
+                    if (m["wallet"] == null) DEFAULT_WALLET_ID else wholeNumber(m["wallet"])
                 )
             }
-            return BackupData(expenses, limits, categories)
+            val wallets = (root["wallets"] as? List<*>).orEmpty().mapNotNull { item ->
+                val m = item as? Map<*, *> ?: return@mapNotNull null
+                val type = WalletType.entries.firstOrNull { it.name == m["type"] } ?: return@mapNotNull null
+                val opening = (m["opening"] as? Double)?.takeIf { it.isFinite() } ?: return@mapNotNull null
+                Wallet(wholeNumber(m["id"]), m["name"] as? String ?: return@mapNotNull null, type, opening)
+            }
+            val transfers = (root["transfers"] as? List<*>).orEmpty().mapNotNull { item ->
+                val m = item as? Map<*, *> ?: return@mapNotNull null
+                val amount = (m["amount"] as? Double)?.takeIf { it.isFinite() && it > 0 } ?: return@mapNotNull null
+                Transfer(wholeNumber(m["id"]), wholeNumber(m["from"]), wholeNumber(m["to"]), amount, wholeNumber(m["timestamp"]))
+            }
+            return BackupData(expenses, limits, categories, wallets, transfers)
         } catch (e: BackupException) {
             throw e
         } catch (e: RuntimeException) {
