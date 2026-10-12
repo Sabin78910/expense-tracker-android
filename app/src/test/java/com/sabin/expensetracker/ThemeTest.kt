@@ -4,11 +4,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ThemeTest {
-    @Test fun lightFallbackUsesEmeraldSeed() {
-        assertEquals(Color(0xFF10B981), fallbackColorScheme(dark = false).primary)
+    @Test fun darkFallbackUsesEmeraldSeed() {
+        assertEquals(Color(0xFF10B981), fallbackColorScheme(dark = true).primary)
     }
 
     @Test fun darkFallbackDiffersFromLight() {
@@ -52,5 +53,34 @@ class ThemeTest {
     @Test fun tonalElevationStepsUp() {
         assertEquals(0f, tonalElevationDp(0))
         assertEquals(true, tonalElevationDp(2) > tonalElevationDp(1))
+    }
+
+    @Test fun textRolesMeetContrastInLightAndDark() {
+        for (dark in listOf(false, true)) {
+            val c = fallbackColorScheme(dark)
+            assertTrue("onSurface $dark", contrastRatio(c.onSurface, c.surface) >= 4.5)
+            assertTrue("onSurfaceVariant $dark", contrastRatio(c.onSurfaceVariant, c.surface) >= 4.5)
+            assertTrue("onPrimary $dark", contrastRatio(c.onPrimary, c.primary) >= 4.5)
+            assertTrue("primary text $dark", contrastRatio(c.primary, c.surface) >= 4.5)
+            assertTrue("onPrimaryContainer $dark", contrastRatio(c.onPrimaryContainer, c.primaryContainer) >= 4.5)
+        }
+    }
+
+    @Test fun darkPrimaryIsEmeraldFamilyNotBlue() {
+        val p = fallbackColorScheme(dark = true).primary
+        assertTrue(p.green > p.blue && p.green > p.red)
+    }
+
+    @Test fun contrastRatioMatchesWcagExtremes() {
+        assertEquals(21.0, contrastRatio(Color.Black, Color.White), 0.01)
+        assertEquals(1.0, contrastRatio(Color.White, Color.White), 0.01)
+    }
+
+    @Test fun fieldShapeIsAtLeast24dp() {
+        assertTrue(FIELD_RADIUS_DP >= 24f)
+    }
+
+    @Test fun amountFieldStyleIsTabular() {
+        assertEquals("tnum", amountFieldTextStyle().fontFeatureSettings)
     }
 }

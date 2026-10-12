@@ -42,3 +42,11 @@ fun ringDescription(band: BudgetBand, leftFraction: Float): String {
     }
     return "Budget: ${(leftFraction * 100).roundToInt()}% left, $state"
 }
+
+/** Percent of the budget spent, shown inside the ring (not clamped, so overspend reads 120%). */
+fun ringCenterLabel(spent: Double, budget: Double): String =
+    if (budget <= 0.0) "" else "${(spent / budget * 100).roundToInt()}%"
+
+/** Share of the budget already spent, 0..1; the ring's progress arc. */
+fun ringSpentFraction(spent: Double, budget: Double): Float =
+    if (budget <= 0.0) 0f else (spent / budget).coerceIn(0.0, 1.0).toFloat()

@@ -72,13 +72,10 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun ExpenseTheme(content: @Composable () -> Unit) {
     val dark = isSystemInDarkTheme()
-    val context = LocalContext.current
-    val scheme = when {
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ->
-            if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        else -> fallbackColorScheme(dark)
+    val scheme = fallbackColorScheme(dark)
+    MaterialTheme(colorScheme = scheme, shapes = expenseShapes(), typography = expenseTypography()) {
+        Surface(Modifier.fillMaxSize(), color = scheme.background, contentColor = scheme.onSurface, content = content)
     }
-    MaterialTheme(colorScheme = scheme, shapes = expenseShapes(), typography = expenseTypography(), content = content)
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -445,7 +442,9 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
                     Text(formatNpr(book.total()), style = MaterialTheme.typography.titleMedium)
                 }
                 status.message?.let { Text(it) }
-                OutlinedTextField(
+                Spacer(Modifier.height(12.dp))
+                SectionHeader(stringResource(R.string.budget_section))
+                AmountField(
                     budgetText,
                     {
                         budgetText = filterDecimalInput(budgetText, it)
@@ -453,9 +452,8 @@ fun ExpenseScreen(startWithForm: Boolean = false) {
                         prefs.edit().putLong("budget", budget.toRawBits()).apply()
                         scope.launch { ExpenseWidget.refresh(context) }
                     },
-                    label = { Text(stringResource(R.string.monthly_budget)) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.fillMaxWidth()
+                    stringResource(R.string.monthly_budget),
+                    Modifier.padding(top = 12.dp)
                 )
                 val shares = categoryShares(monthCategoryTotals(book.expenses, month.year, month.monthValue))
                 CategoryChips(shares)

@@ -100,4 +100,5 @@
     <string name="keypad_backspace">अन्तिम अङ्क मेट्नुहोस्</string>
     <string name="saved_confirmation">सुरक्षित ✓</string>
     <string name="streak_grew">🔥 %d दिनको स्ट्रिक!</string>
+    <string name="budget_section">बजेट</string>
 </resources>

@@ -55,4 +55,17 @@ class HeroTest {
         assertEquals("Budget: 10% left, nearing limit", ringDescription(BudgetBand.AMBER, 0.1f))
         assertEquals("Budget: 0% left, over budget", ringDescription(BudgetBand.RED, 0f))
     }
+
+    @Test fun ringCenterLabelShowsPercentSpent() {
+        assertEquals("", ringCenterLabel(0.0, 0.0))
+        assertEquals("0%", ringCenterLabel(0.0, 1000.0))
+        assertEquals("42%", ringCenterLabel(420.0, 1000.0))
+        assertEquals("120%", ringCenterLabel(1200.0, 1000.0))
+    }
+
+    @Test fun ringSpentFractionIsClamped() {
+        assertEquals(0f, ringSpentFraction(10.0, 0.0), 0.0001f)
+        assertEquals(0.25f, ringSpentFraction(250.0, 1000.0), 0.0001f)
+        assertEquals(1f, ringSpentFraction(2000.0, 1000.0), 0.0001f)
+    }
 }

@@ -46,9 +46,10 @@ fun HeroCard(
     }
     val shown = countUpValue(monthSpent, anim.value)
     val leftTarget = budgetLeftFraction(monthSpent, budget)
-    val ring = remember { Animatable(leftTarget) }
-    LaunchedEffect(leftTarget) {
-        if (reduced) ring.snapTo(leftTarget) else ring.animateTo(leftTarget, spring(dampingRatio = 0.6f, stiffness = 200f))
+    val spentTarget = ringSpentFraction(monthSpent, budget)
+    val ring = remember { Animatable(spentTarget) }
+    LaunchedEffect(spentTarget) {
+        if (reduced) ring.snapTo(spentTarget) else ring.animateTo(spentTarget, spring(dampingRatio = 0.6f, stiffness = 200f))
     }
     val scheme = MaterialTheme.colorScheme
     Box(
@@ -82,14 +83,21 @@ fun HeroCard(
                         else -> scheme.onPrimary
                     }
                     val track = scheme.onPrimary.copy(alpha = 0.3f)
-                    Canvas(
-                        Modifier.size(72.dp).semantics { contentDescription = ringDescription(band, leftTarget) }
+                    Box(
+                        Modifier.size(80.dp).semantics { contentDescription = ringDescription(band, leftTarget) },
+                        contentAlignment = Alignment.Center
                     ) {
-                        val stroke = 10.dp.toPx()
-                        val arc = Size(size.width - stroke, size.height - stroke)
-                        val topLeft = Offset(stroke / 2, stroke / 2)
-                        drawArc(track, 0f, 360f, false, topLeft, arc, style = Stroke(stroke))
-                        drawArc(ringColor, -90f, 360f * ring.value, false, topLeft, arc, style = Stroke(stroke, cap = StrokeCap.Round))
+                        Canvas(Modifier.fillMaxSize()) {
+                            val stroke = 10.dp.toPx()
+                            val arc = Size(size.width - stroke, size.height - stroke)
+                            val topLeft = Offset(stroke / 2, stroke / 2)
+                            drawArc(track, 0f, 360f, false, topLeft, arc, style = Stroke(stroke))
+                            drawArc(ringColor, -90f, 360f * ring.value, false, topLeft, arc, style = Stroke(stroke, cap = StrokeCap.Round))
+                        }
+                        Text(
+                            ringCenterLabel(monthSpent, budget),
+                            style = MaterialTheme.typography.labelLarge, color = scheme.onPrimary
+                        )
                     }
                 }
             }
