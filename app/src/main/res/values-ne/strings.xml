@@ -102,4 +102,9 @@
     <string name="streak_grew">🔥 %d दिनको स्ट्रिक!</string>
     <string name="budget_section">बजेट</string>
     <string name="suggestion_hint">भर्न दुई पटक ट्याप गर्नुहोस्</string>
+    <string name="calc_result">= रु %1$s</string>
+    <string name="calc_plus">जोड</string>
+    <string name="calc_minus">घटाउ</string>
+    <string name="calc_times">गुणा</string>
+    <string name="calc_divide">भाग</string>
 </resources>

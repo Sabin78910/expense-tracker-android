@@ -13,19 +13,31 @@ const val KEYPAD_BACKSPACE = '<'
 const val MAX_KEYPAD_DIGITS = 9
 private const val MAX_DECIMALS = 2
 
-/** Applies one number-pad [key] (digit, '.', or [KEYPAD_BACKSPACE]) to [current]. */
-fun keypadPress(current: String, key: Char): String = when {
-    key == KEYPAD_BACKSPACE -> current.dropLast(1)
-    key == '.' -> when {
-        '.' in current -> current
-        current.isEmpty() -> "0."
-        current.length >= MAX_KEYPAD_DIGITS -> current
-        else -> "$current."
+/** Operator keys on the number pad; each is only accepted straight after a number. */
+const val KEYPAD_OPERATORS = "+-×÷"
+
+/** Applies one number-pad [key] (digit, '.', operator, or [KEYPAD_BACKSPACE]) to [current]; limits apply per number. */
+fun keypadPress(current: String, key: Char): String {
+    val number = current.takeLastWhile { it.isDigit() || it == '.' }
+    return when {
+        key == KEYPAD_BACKSPACE -> current.dropLast(1)
+        key in KEYPAD_OPERATORS -> when {
+            number == "." -> current
+            number.isNotEmpty() -> current + key
+            current.isEmpty() -> current
+            else -> current.dropLast(1) + key
+        }
+        key == '.' -> when {
+            '.' in number -> current
+            number.isEmpty() -> current + "0."
+            number.length >= MAX_KEYPAD_DIGITS -> current
+            else -> "$current."
+        }
+        key in '0'..'9' -> when {
+            number.length >= MAX_KEYPAD_DIGITS -> current
+            '.' in number && number.substringAfter('.').length >= MAX_DECIMALS -> current
+            else -> current + key
+        }
+        else -> current
     }
-    key in '0'..'9' -> when {
-        current.length >= MAX_KEYPAD_DIGITS -> current
-        '.' in current && current.substringAfter('.').length >= MAX_DECIMALS -> current
-        else -> current + key
-    }
-    else -> current
 }
